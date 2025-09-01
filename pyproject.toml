@@ -1,0 +1,29 @@
+[project]
+name = "mmai-hackathon"
+version = "0.1.0"
+description = "Base source code for MMAI workshop Hackathon."
+readme = "README.md"
+requires-python = ">=3.9, <3.13"
+dependencies = [
+    "pre-commit>=4.3.0",
+    "pykale@git+https://github.com/pykale/pykale@main[full]",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "ruff>=0.12.11",
+]
+authors = [
+    { name = "Shuo Zhou", email = "shuo.zhou@sheffield.ac.uk" },
+    { name = "Xianyuan Liu", email = "xianyuan.liu@sheffield.ac.uk" },
+    { name = "Wenrui Fan", email = "wenrui.fan@sheffield.ac.uk" },
+    { name = "Mohammod N. I. Suvon", email = "m.suvon@sheffield.ac.uk" },
+    { name = "L. M. Riza Rizky", email = "l.m.rizky@sheffield.ac.uk" },
+]
+
+[tool.ruff]
+line-length = 119
+
+[tool.ruff.lint]
+docstring-code-line-length = "dynamic"
+
+[tool.uv.sources]
+pykale = { git = "https://github.com/pykale/pykale", rev = "main" }
