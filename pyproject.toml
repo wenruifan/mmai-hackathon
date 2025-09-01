@@ -10,6 +10,7 @@ dependencies = [
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
     "ruff>=0.12.11",
+    "torch-geometric>=2.6.0",
 ]
 authors = [
     { name = "Shuo Zhou", email = "shuo.zhou@sheffield.ac.uk" },
