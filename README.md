@@ -10,22 +10,42 @@ This repository provides the base source code for the MMAI '25 workshop Hackatho
 - Git
 
 
+
 ## Installation (Development)
 
 You can set up your development environment using one of the following methods: `venv`, `conda`, or `uv`.
 
-### Using venv (Standard Python Virtual Environment)
+### Main Installation Steps
 
-1. **Create and activate a virtual environment:**
+1. **Clone the repository:**
+	```bash
+	git clone https://github.com/pykale/mmai-hackathon.git
+	cd mmai-hackathon
+	```
+2. **Set up a virtual environment (recommended):**
 	```bash
 	python3 -m venv .venv
 	source .venv/bin/activate
 	```
-2. **Install dependencies:**
+3. **Install dependencies:**
 	```bash
 	pip install --upgrade pip
 	pip install -e .
 	```
+
+#### Installing torch-geometric (pyg) and its extensions
+
+To install torch-geometric (`pyg`) and its required extensions (such as `torch-scatter`, `torch-sparse`, etc.), use the following command with the appropriate URL for your PyTorch and CUDA version:
+
+```bash
+pip install torch-geometric torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
+```
+
+Replace the URL with the one matching your PyTorch and CUDA version. For more details and the latest URLs, see the official torch-geometric installation guide: https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html
+
+---
+
+You can also use the following environment-specific guides:
 
 ### Using conda (Anaconda/Miniconda)
 
