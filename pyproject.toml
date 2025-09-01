@@ -22,7 +22,7 @@ authors = [
 [tool.ruff]
 line-length = 119
 
-[tool.ruff.lint]
+[tool.ruff.format]
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
 
