@@ -23,6 +23,7 @@ authors = [
 line-length = 119
 
 [tool.ruff.lint]
+docstring-code-format = true
 docstring-code-line-length = "dynamic"
 
 [tool.uv.sources]
