@@ -50,19 +50,38 @@ class DTIDataset(data.Dataset):
         self.kekulize = kekulize
 
     def __getitem__(self, index):
+        """
+        Get a single data item from the dataset.
+
+        Args:
+            index (int): Index of the data item to retrieve.
+
+        Returns:
+            dict: A dictionary of features and labels containing:
+                - molecule_graph (torch_geometric.data.Data): The graph representation of the molecule.
+                - protein_encoding (torch.Tensor): The encoded representation of the protein sequence.
+                - target (int): The ground truth label for the DTI interaction.
+        """
         # Convert SMILES to PyG graph representation
         smiles = from_smiles(self.smiles[index])
-        # Convert protein sequence to integer encoding
-        protein_sequence = encode_protein_sequence(self.protein_sequences[index], self.max_prot_seq_len)
+        # Convert protein sequence to integer encoding and cast to tensor
+        protein_encoding = encode_protein_sequence(self.protein_sequences[index], self.max_prot_seq_len)
+        protein_encoding = torch.from_numpy(protein_encoding)
         # Fetch target/prediction label
         target = self.targets[index]
 
-        return {"molecule_graph": smiles, "protein_encoding": torch.from_numpy(protein_sequence), "target": target}
+        return {"molecule_graph": smiles, "protein_encoding": protein_encoding, "target": target}
 
     def __len__(self):
+        """
+        Get the total number of samples in the dataset.
+        """
         return len(self.smiles)
 
     def __repr__(self):
+        """
+        Representation of the DTIDataset.
+        """
         return (
             f"DTIDataset(num_samples={len(self)}, "
             f"max_atom_nodes={self.max_atom_nodes}, "
