@@ -1,6 +1,6 @@
 import logging
-import numpy as np
 
+import numpy as np
 
 # Generate character set for protein sequences
 CHARPROTSET = [chr(i) for i in range(ord("A"), ord("Z") + 1) if chr(i) != "J"]
@@ -20,16 +20,16 @@ def encode_protein_sequence(sequence: str, max_length: int = 1200) -> np.ndarray
         np.ndarray: An array of shape (max_length,) containing the integer-encoded representation.
     """
     # Initialize an array of zeros
-    labels = np.zeros(max_length, dtype=np.ulonglong)
-    for i, letter in enumerate(sequence[:max_length]):
+    encoded_sequence = np.zeros(max_length, dtype=np.uint64)
+    for i, char in enumerate(sequence[:max_length]):
         # If character is not in CHARPROTSET, it will be skipped and assumed to be unknown
         try:
-            labels[i] = CHARPROTSET[letter]
+            encoded_sequence[i] = CHARPROTSET[char]
         except KeyError:
             logging.warning(
                 (
-                    f"Character '{letter}' does not exists in sequence category encoding. "
+                    f"Character '{char}' does not exists in sequence category encoding. "
                     "Will be skipped and treated as padding with index 0."
                 )
             )
-    return labels
+    return encoded_sequence
