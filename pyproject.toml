@@ -20,8 +20,15 @@ authors = [
     { name = "L. M. Riza Rizky", email = "l.m.rizky@sheffield.ac.uk" },
 ]
 
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+disable_error_code = ["assignment", "call-overload"]
+
 [tool.ruff]
 line-length = 119
+extend-select = ["I"]
 
 [tool.ruff.format]
 docstring-code-format = true
