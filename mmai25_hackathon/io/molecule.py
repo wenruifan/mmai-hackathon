@@ -1,0 +1,55 @@
+"""
+Provides utilities to handle molecular data, specifically SMILES strings.
+Includes functions to read SMILES from dataframes or CSV files and convert
+SMILES strings to graph representations using PyTorch Geometric (PyG).
+
+To process molecules to a graph representation, we will use
+the native implementation from PyG called `from_smiles`.
+
+We explicitly redefine `from_smiles` to `smiles_to_graph` here
+for clarity on how to use it in the context of this hackathon.
+"""
+
+from typing import Union
+
+import pandas as pd
+from torch_geometric.utils.smiles import from_smiles
+
+
+def fetch_smiles_from_dataframe(df: Union[pd.DataFrame, str], smiles_col: str, index_col: str = None) -> pd.DataFrame:
+    """
+    Fetches SMILES strings from a DataFrame or CSV file. Will read the CSV if a path is provided.
+
+    Args:
+        df (Union[pd.DataFrame, str]): DataFrame or path to CSV file.
+        smiles_col (str): Column name for SMILES representations.
+        index_col (str, optional): Column to set as index. Default: None.
+
+    Returns:
+        pd.DataFrame: A single column DataFrame containing the SMILES strings with name `"smiles"`.
+    """
+    if isinstance(df, str):
+        df = pd.read_csv(df)
+
+    if smiles_col not in df.columns:
+        raise ValueError(f"Column '{smiles_col}' not found in DataFrame.")
+
+    if index_col is not None:
+        df = df.set_index(index_col)
+
+    return df[smiles_col].to_frame("smiles")
+
+
+def smiles_to_graph(smiles: str, with_hydrogen: bool = False, kekulize: bool = False):
+    """
+    Converts a SMILES string to a molecular graph representation.
+
+    Args:
+        smiles (str): The SMILES string to convert.
+        with_hydrogen (bool): Store hydrogens in the graph if True. Default: False
+        kekulize (bool): Converts aromatic bonds to single/double bonds if True. Default: False
+
+    Returns:
+        torch_geometric.data.Data: The molecular graph representation.
+    """
+    return from_smiles(smiles, with_hydrogen, kekulize)
