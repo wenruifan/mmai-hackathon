@@ -84,10 +84,10 @@ class BaseDataLoader(PyGDataLoader):
     modification. This is to ensure that both graph and non-graph data can be handled seamlessly.
 
     Args:
-    dataset (BaseDataset): The dataset from which to load the data.
-    batch_size (int, optional): How many samples per batch to load. Default: 1
-    shuffle (bool, optional): If set to True, the data will be reshuffled at every epoch. Default: False
-    follow_batch (List[str], optional): Creates assignment batch vectors for each key in the list. Default: None
-    exclude_keys (List[str], optional): Will exclude each key in the list. Default: None
-    **kwargs (optional): Additional arguments of torch.utils.data.DataLoader.
+        dataset (BaseDataset): The dataset from which to load the data.
+        batch_size (int, optional): How many samples per batch to load. Default: 1
+        shuffle (bool, optional): If set to True, the data will be reshuffled at every epoch. Default: False
+        follow_batch (List[str], optional): Creates assignment batch vectors for each key in the list. Default: None
+        exclude_keys (List[str], optional): Will exclude each key in the list. Default: None
+        **kwargs (optional): Additional arguments of torch.utils.data.DataLoader.
     """
