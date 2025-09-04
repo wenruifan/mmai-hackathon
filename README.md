@@ -11,7 +11,15 @@ This repository provides the base source code for the MMAI '25 workshop Hackatho
 
 
 
-## Installation (Development)
+## Installation
+
+### Prerequisite
+
+Before installing other dependencies, install pykale with all optional dependencies (full extras) from git:
+
+```bash
+pip install "pykale@git+https://github.com/pykale/pykale@main[full]"
+```
 
 You can set up your development environment using one of the following methods: `venv`, `conda`, or `uv`.
 
@@ -30,6 +38,8 @@ You can set up your development environment using one of the following methods: 
 3. **Install dependencies:**
 	```bash
 	pip install --upgrade pip
+	# Install pykale with all optional dependencies (full extras) from git first
+	pip install "pykale@git+https://github.com/pykale/pykale@main[full]"
 	pip install -e .
 	```
 
