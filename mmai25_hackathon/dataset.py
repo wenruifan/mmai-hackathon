@@ -73,11 +73,9 @@ class BaseDataset(Dataset):
         such that all we need to do is:
         ```python
         multimodal_dataset = dataset1 + dataset2 + ... + datasetN
-        # or simply
-        multimodal_dataset = dataset1 + dataset2
         ```
         """
-        pass
+        raise NotImplementedError("Subclasses must implement __add__ method if needed.")
 
 
 class BaseDataLoader(PyGDataLoader):
