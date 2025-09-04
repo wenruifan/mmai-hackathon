@@ -1,91 +1,95 @@
 """
-Just a reference code for dataset class.
+The core of the hackathon is to create a multimodal dataset and dataloader
+that can seamlessly handle and scale with multiple modalities such as
+proteins, molecules, images, text, tabular, and time series data.
 
-Can discuss later on how we arrange the base dataset.
+We provided a barebones `torch.utils.data.Dataset` implementation
+named `BaseDataset`, which has the base methods mainly used when
+building custom datasets.
+
+The class serves as a template for creating custom datasets.
+
+Optionally, we include an `__add__` as potential base idea to aggregate
+multiple modalities into a single dataset. Read `__add__` docstring
+for more details. You may consider other ways to achieve this that
+work better for your use case.
+
+We also provide `torch_geometric.data.DataLoader` as the default DataLoader
+instead of `torch.utils.data.DataLoader` which we aliased as `BaseDataLoader`
+for handling both graph and non-graph data seamlessly in-case there are some
+potential ideas that needs overriding of the DataLoader.
 """
 
-import pandas as pd
-import torch
-from torch.utils import data
-from torch_geometric.utils.smiles import from_smiles
-
-from .io.protein import encode_protein_sequence
+from torch.utils.data import Dataset
+from torch_geometric.data import DataLoader as PyGDataLoader
 
 
-class DTIDataset(data.Dataset):
+class BaseDataset(Dataset):
     """
-    Dataset class for DTI (Drug-Target Interaction) prediction given
-    SMILES representations and protein sequences.
+    Base dataset class for creating custom datasets.
+
+    The arguments and methods defined here can be customized as needed.
+
+    The goal is to have easy to extend dataset class for various modalities that
+    can also be combined to obtain multimodal datasets
 
     Args:
-        csv_path (str): Path to the CSV file containing the dataset.
-        smiles_col (str): Column name for SMILES representations.
-        prot_seq_col (str): Column name for protein sequences.
-        label_col (str): Column name for ground truth labels.
-        max_atom_nodes (int): Maximum number of atom nodes in the molecule graph. Default: 290
-        max_prot_seq_len (int): Maximum length of the protein sequence. Default: 1200
-        with_hydrogen (bool): Whether to include hydrogen atoms in the molecule graph. Default: False
-        kekulize (bool): Converts aromatic bonds to single/double bonds if True. Default: False
+        *args: Positional arguments for dataset initialization.
+        **kwargs: Keyword arguments for dataset initialization.
     """
 
-    def __init__(
-        self,
-        csv_path: str,
-        smiles_col: str,
-        prot_seq_col: str,
-        label_col: str,
-        max_atom_nodes: int = 290,
-        max_prot_seq_len: int = 1200,
-        with_hydrogen: bool = False,
-        kekulize: bool = False,
-    ):
+    def __init__(self, *args, **kwargs):
         super().__init__()
-        df = pd.read_csv(csv_path)
-        self.smiles = df[smiles_col].tolist()
-        self.protein_sequences = df[prot_seq_col].tolist()
-        self.targets = df[label_col].tolist()
-        self.max_atom_nodes = max_atom_nodes
-        self.max_prot_seq_len = max_prot_seq_len
-        self.with_hydrogen = with_hydrogen
-        self.kekulize = kekulize
+        raise NotImplementedError("BaseDataset is an abstract class and cannot be instantiated directly.")
 
-    def __getitem__(self, index):
-        """
-        Get a single data item from the dataset.
+    def __len__(self) -> int:
+        """Return the number of samples in the dataset."""
+        raise NotImplementedError("Subclasses must implement __len__ method.")
 
-        Args:
-            index (int): Index of the data item to retrieve.
+    def __getitem__(self, idx: int):
+        """Return a single sample from the dataset."""
+        raise NotImplementedError("Subclasses must implement __getitem__ method.")
 
-        Returns:
-            dict: A dictionary of features and labels containing:
-                - molecule_graph (torch_geometric.data.Data): The graph representation of the molecule.
-                - protein_encoding (torch.Tensor): The encoded representation of the protein sequence.
-                - target (int): The ground truth label for the DTI interaction.
-        """
-        # Convert SMILES to PyG graph representation
-        smiles = from_smiles(self.smiles[index])
-        # Convert protein sequence to integer encoding and cast to tensor
-        protein_encoding = encode_protein_sequence(self.protein_sequences[index], self.max_prot_seq_len)
-        protein_encoding = torch.from_numpy(protein_encoding)
-        # Fetch target/prediction label
-        target = self.targets[index]
+    def __repr__(self) -> str:
+        """Return a string representation of the dataset."""
+        return f"{self.__class__.__name__}({self.extra_repr()})"
 
-        return {"molecule_graph": smiles, "protein_encoding": protein_encoding, "target": target}
+    def extra_repr(self) -> str:
+        """Return any extra information about the dataset."""
+        return f"sample_size={len(self)}"
 
-    def __len__(self):
+    def __add__(self, other):
         """
-        Get the total number of samples in the dataset.
-        """
-        return len(self.smiles)
+        Aggregate data with heterogenous modalities.
 
-    def __repr__(self):
+        For example, we may have:
+        ```python
+        dataset1 = ECGDataset(...)
+        dataset2 = ImageDataset(...)
+        ...
+        datasetN = TextDataset(...)
+        ```
+        One way we imagine to combine them is by using the `+` operator,
+        such that all we need to do is:
+        ```python
+        multimodal_dataset = dataset1 + dataset2 + ... + datasetN
+        # or simply
+        multimodal_dataset = dataset1 + dataset2
+        ```
         """
-        Representation of the DTIDataset.
-        """
-        return (
-            f"DTIDataset(num_samples={len(self)}, "
-            f"max_atom_nodes={self.max_atom_nodes}, "
-            f"max_prot_seq_len={self.max_prot_seq_len}, "
-            f"with_hydrogen={self.with_hydrogen}, "
-            f"kekulize={self.kekulize})"
-        )
+        pass
+
+
+class BaseDataLoader(PyGDataLoader):
+    """
+    A base dataloader directly inheriting from `torch_geometric.data.DataLoader` without any
+    modification. This is to ensure that both graph and non-graph data can be handled seamlessly.
+
+    Args:
+    dataset (BaseDataset): The dataset from which to load the data.
+    batch_size (int, optional): How many samples per batch to load. Default: 1
+    shuffle (bool, optional): If set to True, the data will be reshuffled at every epoch. Default: False
+    follow_batch (List[str], optional): Creates assignment batch vectors for each key in the list. Default: None
+    exclude_keys (List[str], optional): Will exclude each key in the list. Default: None
+    **kwargs (optional): Additional arguments of torch.utils.data.DataLoader.
+    """
