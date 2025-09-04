@@ -13,6 +13,7 @@ for clarity on how to use it in the context of this hackathon.
 from typing import Union
 
 import pandas as pd
+from torch_geometric.data import Data
 from torch_geometric.utils.smiles import from_smiles
 
 
@@ -40,7 +41,7 @@ def fetch_smiles_from_dataframe(df: Union[pd.DataFrame, str], smiles_col: str, i
     return df[smiles_col].to_frame("smiles")
 
 
-def smiles_to_graph(smiles: str, with_hydrogen: bool = False, kekulize: bool = False):
+def smiles_to_graph(smiles: str, with_hydrogen: bool = False, kekulize: bool = False) -> Data:
     """
     Converts a SMILES string to a molecular graph representation.
 
@@ -50,6 +51,12 @@ def smiles_to_graph(smiles: str, with_hydrogen: bool = False, kekulize: bool = F
         kekulize (bool): Converts aromatic bonds to single/double bonds if True. Default: False
 
     Returns:
-        torch_geometric.data.Data: The molecular graph representation.
+        torch_geometric.data.Data: The molecular graph representation containing:
+            - `x`: Node feature matrix with shape [num_nodes, num_node_features].
+            - `edge_index`: Graph connectivity in COO format with shape [2, num_edges].
+            - `edge_attr`: Edge feature matrix with shape [num_edges, num_edge_features].
+            - `num_nodes`: Number of nodes in the graph.
+            - `num_edges`: Number of edges in the graph.
+            - `smiles`: The original SMILES string as a graph attribute.
     """
     return from_smiles(smiles, with_hydrogen, kekulize)
