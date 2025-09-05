@@ -17,11 +17,6 @@ FILES_PATH = os.path.join(
 # -----------------------------
 def get_cxr_paths(base_path: str, csv_path: str | None = None):
     """Return DataFrame with a resolved `path` to each JPG.
-
-    - If `csv_path` is None, auto-discovers a MIMIC-CXR metadata CSV under DATA_PATH.
-    - Auto-detects the ID column among: 'dicom_id', 'dicom', 'image_id'.
-    - Matches *.jpg by stem under `base_path` (the `files/` directory).
-    - Drops rows without a match.
     """
     base = Path(base_path)
     if not base.exists():
@@ -40,10 +35,9 @@ def get_cxr_paths(base_path: str, csv_path: str | None = None):
             raise FileNotFoundError(
                 "Could not auto-find a metadata CSV. Please pass csv_path explicitly."
             )
-        # Pick the shortest path (usually the top-level one)
         csv_path = min(candidates, key=len)
 
-    # Read CSV (robust to common encodings)
+    # Read CSV
     df = pd.read_csv(csv_path)
 
     # Detect dicom id column

@@ -5,7 +5,7 @@ from pathlib import Path
 # ---- Configure your dataset root ----
 DATA_PATH = r"D:\MMAI'25 Hackathon"
 ECG_DIR   = "mimic-iv-ecg-diagnostic-electrocardiogram-matched-subset-1.0"
-FILES_PATH = os.path.join(DATA_PATH, ECG_DIR)  # <-- just root of this modality, NOT adding "files"
+FILES_PATH = os.path.join(DATA_PATH, ECG_DIR)
 
 # -----------------------------
 # 1) Build paths from record_list
@@ -13,9 +13,6 @@ FILES_PATH = os.path.join(DATA_PATH, ECG_DIR)  # <-- just root of this modality,
 def get_ecg_paths(base_path: str, csv_path: str):
     """
     Return a DataFrame with resolved ECG file paths from record_list.csv.
-
-    - column 'path' is like: files/p100/p101/s133/133
-    - Builds absolute paths: <base_path>/<path>.hea and <path>.dat
     """
     base = Path(base_path)
     if not base.exists():
@@ -27,14 +24,12 @@ def get_ecg_paths(base_path: str, csv_path: str):
 
     abs_heas, abs_dats = [], []
     for rel in df["path"].astype(str):
-        # Build absolute paths (just join with base and add extension)
         abs_heas.append(str(base / f"{rel}.hea"))
         abs_dats.append(str(base / f"{rel}.dat"))
 
     df["hea_path"] = abs_heas
     df["dat_path"] = abs_dats
 
-    # Keep only those where both files exist
     before = len(df)
     df = df[df["hea_path"].map(os.path.exists) & df["dat_path"].map(os.path.exists)].copy()
     after = len(df)
