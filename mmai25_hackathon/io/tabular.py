@@ -70,7 +70,7 @@ def read_tabular(
         paths = [paths]
 
     dataframes: List[pd.DataFrame] = [pd.read_csv(path) for path in paths]
-    filename_stems: List[str] = [Path(path).stem for i, path in enumerate(paths)]
+    filename_stems: List[str] = [Path(path).stem for path in paths]
 
     # Concatenate mode (preserve column names)
     if not index_cols:
