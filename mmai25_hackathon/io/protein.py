@@ -81,3 +81,19 @@ def protein_sequence_to_integer_encoding(sequence: str, max_length: int = 1200) 
         # If character is not in CHARPROTSET, it will be skipped and assumed to be unknown
         encoded_sequence[i] = CHARPROTSET.get(char, 0)
     return encoded_sequence
+
+
+if __name__ == "__main__":
+    import argparse
+
+    # Example script: python -m mmai25_hackathon.io.molecule dataset.csv
+
+    parser = argparse.ArgumentParser(description="Process SMILES strings.")
+    parser.add_argument("csv_path", type=str, help="Path to the CSV file containing SMILES strings.")
+    args = parser.parse_args()
+
+    # Take from Peizhen's csv file for DrugBAN training
+    df = fetch_protein_sequences_from_dataframe(args.csv_path, prot_seq_col="Protein")
+    for i, row in enumerate(df["protein_sequence"].head(5), 1):
+        graph = protein_sequence_to_integer_encoding(row)
+        print(i, graph)
