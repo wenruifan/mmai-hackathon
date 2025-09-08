@@ -2,10 +2,10 @@
 
 We provide a **two-step pipeline** for preparing and loading multi-omics data into graph-structured datasets for graph neural networks (PyTorch Geometric).
 
-- **Step 1: Preprocessing**  
+- **Step 1: Preprocessing**
   Clean and normalize raw TCGA-style omics data tables (e.g., mRNA, methylation, miRNA) together with clinical labels.
 
-- **Step 2: Graph Loading**  
+- **Step 2: Graph Loading**
   Convert the processed CSVs into modality-specific graphs, where each node is a patient/sample, and edges represent sample similarity.
 
 ---
@@ -131,7 +131,7 @@ val_data = load_multiomics(
 ## ⚠️ Notes & gotchas
 
 - Raw label files are downloaded from [TCGA website](https://xenabrowser.net/datapages/) expected as **TSVs** (tab-separated). Preprocessing writes CSVs (comma-separated).
-- Preprocessing saves `label.csv` **without sample IDs** (to match the loader).  
+- Preprocessing saves `label.csv` **without sample IDs** (to match the loader).
   Modify `save_processed` if you want IDs preserved.
-- `_sample_weight` currently uses **class frequency** weights.  
+- `_sample_weight` currently uses **class frequency** weights.
   Switch to inverse-frequency if you need proper balancing.

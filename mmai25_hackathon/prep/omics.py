@@ -62,12 +62,14 @@ run_preprocessing_pipeline(
 """
 
 import os
+from typing import Dict, List, Optional, Tuple
+
 import pandas as pd
-from typing import List, Tuple, Optional, Dict
 
 # -----------------------------
 # Small, reusable helper funcs
 # -----------------------------
+
 
 def load_label_table(
     label_path: str,
@@ -258,8 +260,7 @@ def print_omics_shapes(omics: List[Tuple[str, pd.DataFrame]], title: str):
 
 
 def check_label_indices_availability(
-    labels: pd.Series,
-    omics: List[Tuple[str, pd.DataFrame]]
+    labels: pd.Series, omics: List[Tuple[str, pd.DataFrame]]
 ) -> Tuple[bool, List[str]]:
     """
     Check whether each sample in labels is present in at least one modality.
@@ -360,7 +361,6 @@ def save_processed(
     Add versioning to `save_path` (e.g., include a timestamp or config hash).
     """
     print("Saving the processed data...")
-    omics_names = [os.path.basename(p[1]) for p in data_paths]  # currently unused; kept for parity
     if save_path is None:
         save_path = "./"
 
@@ -390,16 +390,17 @@ def save_processed(
 # Linear pipeline
 # -----------------------------
 
+
 def run_preprocessing_pipeline(
-    label_path: str, 
-    data_paths: List[Tuple[str, str]], 
-    save_path: str, 
-    label_column_name: str = "PAM50Call_RNAseq", 
-    label_column_values: Optional[List[str]] = None, 
-    clean_missing: bool = True, 
-    normalize: bool = True, 
-    var_threshold: Optional[List[Optional[float]]] = None
-    ):
+    label_path: str,
+    data_paths: List[Tuple[str, str]],
+    save_path: str,
+    label_column_name: str = "PAM50Call_RNAseq",
+    label_column_values: Optional[List[str]] = None,
+    clean_missing: bool = True,
+    normalize: bool = True,
+    var_threshold: Optional[List[Optional[float]]] = None,
+):
     """
     Run the full preprocessing pipeline as a linear script.
 
@@ -440,8 +441,7 @@ def run_preprocessing_pipeline(
     - If you later join modalities, ensure consistent row order across files.
     """
     # ----- User-configurable inputs (same semantics as your class version) -----
-    num_omics = len(data_paths)  # not strictly needed but kept for parity
-    sep = "\t"                   # adjust if using CSV with commas
+    sep = "\t"  # adjust if using CSV with commas
 
     # ----------------- Step 1: Load labels -----------------
     labels = load_label_table(

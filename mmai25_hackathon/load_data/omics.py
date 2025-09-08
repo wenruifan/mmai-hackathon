@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import List, Optional, Tuple, Dict, Any, Literal
+
+from typing import Any, Dict, List, Literal, Optional
 
 import numpy as np
 import pandas as pd
@@ -173,8 +174,8 @@ def load_multiomics(
     sim_thresholds: List[float] = []
     data_list: List[Data] = []
 
-    allow_fit = (mode == "train")
-    applied_ref = (ref is not None and "sim_thresholds" in ref and isinstance(ref["sim_thresholds"], list))
+    allow_fit = mode == "train"
+    applied_ref = ref is not None and "sim_thresholds" in ref and isinstance(ref["sim_thresholds"], list)
 
     for mi, X_np in enumerate(X_list_np):
         X = torch.as_tensor(X_np, dtype=torch.float32)
@@ -182,15 +183,21 @@ def load_multiomics(
         # ---- Fit or reuse threshold for this modality ----
         if allow_fit:
             S = _pairwise_cosine(X, eps=eps)
-            S_no_diag = S.clone(); S_no_diag.fill_diagonal_(float("-inf"))
+            S_no_diag = S.clone()
+            S_no_diag.fill_diagonal_(float("-inf"))
             thr = _fit_global_cutoff(S_no_diag, edge_per_node)
         else:
-            if applied_ref and mi < len(ref["sim_thresholds"]):
-                thr = float(ref["sim_thresholds"][mi])
+            if applied_ref and ref is None:
+                raise ValueError("ref with 'sim_thresholds' required when mode != 'train'")
+            elif applied_ref and ref is not None:
+                sim_thresholds = ref["sim_thresholds"]
+                if mi < len(sim_thresholds):
+                    thr = float(sim_thresholds[mi])
             else:
                 # Fallback: compute from current data (useful for standalone val/test)
                 S = _pairwise_cosine(X, eps=eps)
-                S_no_diag = S.clone(); S_no_diag.fill_diagonal_(float("-inf"))
+                S_no_diag = S.clone()
+                S_no_diag.fill_diagonal_(float("-inf"))
                 thr = _fit_global_cutoff(S_no_diag, edge_per_node)
 
         sim_thresholds.append(thr)
@@ -199,20 +206,20 @@ def load_multiomics(
         S = _pairwise_cosine(X, eps=eps)
         M = (S >= thr).float()
         M.fill_diagonal_(0.0)
-        A = _symmetrize_max(S * M)              # undirected
+        A = _symmetrize_max(S * M)  # undirected
         A = _add_I_and_row_normalize(A, eps=eps)  # add self-loops + normalize rows
 
         # Convert to (edge_index, edge_weight)
         Asp = A.to_sparse()
-        ei = Asp.indices()           # [2, E]
-        ew = Asp.values()            # [E]
+        ei = Asp.indices()  # [2, E]
+        ew = Asp.values()  # [E]
 
         # ---- Sample weights (train only) ----
         if y_t is not None and mode == "train":
             if y_t.ndim == 2:  # one-hot
                 labels_train = torch.argmax(y_t, dim=1).cpu().numpy()
                 n_cls = y_t.shape[1]
-            else:              # integer
+            else:  # integer
                 labels_train = y_t.to(torch.long).cpu().numpy()
                 n_cls = int(labels_train.max()) + 1 if labels_train.size > 0 else (num_classes or 0)
             sw = _sample_weight(labels_train, n_cls, equal_weight)
@@ -296,12 +303,12 @@ def _fit_global_cutoff(S_no_diag: torch.Tensor, k: int) -> float:
         Scalar similarity threshold.
     """
     N = S_no_diag.shape[0]
-    k_eff = max(min(k, max(N - 1, 1)), 1)        # 1 <= k_eff <= N-1
+    k_eff = max(min(k, max(N - 1, 1)), 1)  # 1 <= k_eff <= N-1
     flat = S_no_diag.reshape(-1)
     valid = flat.isfinite()
     flat = flat[valid]
     if flat.numel() == 0:
-        return float("inf")                       # degenerate case (N<=1)
+        return float("inf")  # degenerate case (N<=1)
     pos = max(min(k_eff * N - 1, flat.numel() - 1), 0)
     val = torch.kthvalue(-flat, k=pos + 1).values
     return float(-val.item())

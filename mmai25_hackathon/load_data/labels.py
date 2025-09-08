@@ -3,7 +3,8 @@ Provides label handling utilities fetching labels.
 For now, we limit it to supporting CSV and DataFrame inputs.
 """
 
-from typing import Union, Sequence
+from typing import Sequence, Union
+
 import pandas as pd
 
 
