@@ -3,7 +3,7 @@ name = "mmai-hackathon"
 version = "0.1.0"
 description = "Base source code for MMAI workshop Hackathon."
 readme = "README.md"
-requires-python = ">3.9, <3.13"
+requires-python = ">=3.10, <3.13"
 dependencies = [
     "pre-commit>=4.3.0",
     "pykale@git+https://github.com/pykale/pykale@main[full]",
