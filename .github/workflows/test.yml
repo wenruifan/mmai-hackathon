@@ -18,19 +18,19 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-#        os: [ubuntu-latest, windows-latest]
+        #        os: [ubuntu-latest, windows-latest]
         os: [ubuntu-latest]
         python-version: ["3.10", "3.11", "3.12"] # list of Python versions to test
-#        exclude:
-#          - os: windows-latest
-#            python-version: "3.9"
-#          - os: windows-latest
-#            python-version: "3.10"
+        #        exclude:
+        #          - os: windows-latest
+        #            python-version: "3.9"
+        #          - os: windows-latest
+        #            python-version: "3.10"
         include:
           - os: ubuntu-latest
             path: ~/.cache/pip
-#          - os: windows-latest
-#            path: ~\AppData\Local\pip\Cache
+    #          - os: windows-latest
+    #            path: ~\AppData\Local\pip\Cache
 
     steps:
       - uses: actions/checkout@v4
@@ -56,19 +56,15 @@ jobs:
           # We set a date tag to the cache key to show the updated date of the cache. We can update this date tag to
           # generate new cache after every major changes in setup.py.
 
-      - name: Install PyTorch + PyG
+      - name: Install mmai25_hackathon dependencies
         run: |
-          pip install rdkit
-          pip install gdown
-          pip install pandas
-          pip install pyparsing==3.2.0
-          pip install numpy>=2.0.0
           pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install torch_geometric==2.6.0
           pip install torch_scatter==2.1.2 -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
           pip install torch_sparse==0.6.18 -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
           pip install torch_cluster==1.6.3 -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
           pip install torch_spline_conv==1.2.2 -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
-          pip install torch_geometric==2.6.0
+          pip install -e .
         shell: bash -l {0}
 
       - name: Run tests with thread limits
