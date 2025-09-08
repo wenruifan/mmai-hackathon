@@ -25,6 +25,21 @@ def fetch_supervised_labels_from_dataframe(
     Returns:
         pd.DataFrame: A DataFrame containing the labels with name `"label"` if a single column is provided,
                       or the original column names if multiple columns are provided.
+                      
+    Examples:
+        >>> df = pd.DataFrame({
+        ...     'id': [1, 2, 3],
+        ...     'feature1': [0.5, 0.6, 0.7],
+        ...     'feature2': [1.5, 1.6, 1.7],
+        ...     'label': [0, 1, 0]
+        ... })
+        >>> labels = fetch_supervised_labels_from_dataframe(df, label_col='label', index_col='id')
+        >>> print(labels)
+            label
+        id
+        1      0
+        2      1
+        3      0
     """
     if isinstance(df, str):
         df = pd.read_csv(df)

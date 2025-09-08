@@ -27,6 +27,21 @@ def fetch_protein_sequences_from_dataframe(
 
     Returns:
         pd.DataFrame: A single column DataFrame containing the protein sequences with name `"protein_sequence"`.
+
+    Examples:
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "id": [1, 2, 3],
+        ...         "protein_sequence": ["MKTAYIAKQRQISFVKSH", "GAVLILLLV", "TTPSYVAFTDTER"],
+        ...     }
+        ... )
+        >>> sequences = fetch_protein_sequences_from_dataframe(df, prot_seq_col="protein_sequence", index_col="id")
+        >>> print(sequences)
+            protein_sequence
+        id
+        1  MKTAYIAKQRQISFVKSH
+        2         GAVLILLLV
+        3      TTPSYVAFTDTER
     """
     if isinstance(df, str):
         df = pd.read_csv(df)
@@ -50,6 +65,15 @@ def protein_sequence_to_integer_encoding(sequence: str, max_length: int = 1200) 
 
     Returns:
         np.ndarray: An array of shape (max_length,) containing the integer-encoded representation.
+
+    Examples:
+        >>> seq = "MKTAYIAKQRQISFVKSH"
+        >>> encoded = protein_sequence_to_integer_encoding(seq, max_length=5)
+        >>> print(encoded)
+        [13 11 20  1 25]
+        >>> encoded = protein_sequence_to_integer_encoding(seq, max_length=25)
+        >>> print(encoded)
+        [13 11 20  1 25  9  1 11 17 18 17  9 19  6 22 11 19  8  0  0  0  0  0  0  0]
     """
     # Initialize an array of zeros
     encoded_sequence = np.zeros(max_length, dtype=np.uint64)

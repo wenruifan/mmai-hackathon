@@ -28,6 +28,19 @@ def fetch_smiles_from_dataframe(df: Union[pd.DataFrame, str], smiles_col: str, i
 
     Returns:
         pd.DataFrame: A single column DataFrame containing the SMILES strings with name `"smiles"`.
+        
+    Examples:
+        >>> df = pd.DataFrame({
+        ...     'id': [1, 2, 3],
+        ...     'smiles': ['CCO', 'C1=CC=CC=C1', 'CC(=O)O'],
+        ... })
+        >>> smiles = fetch_smiles_from_dataframe(df, smiles_col='smiles', index_col='id')
+        >>> print(smiles)
+            smiles
+        id
+        1      CCO
+        2  C1=CC=CC=C1
+        3   CC(=O)O
     """
     if isinstance(df, str):
         df = pd.read_csv(df)
@@ -58,5 +71,11 @@ def smiles_to_graph(smiles: str, with_hydrogen: bool = False, kekulize: bool = F
             - `num_nodes`: Number of nodes in the graph.
             - `num_edges`: Number of edges in the graph.
             - `smiles`: The original SMILES string as a graph attribute.
+            
+    Examples:
+        >>> smiles = "CCO"
+        >>> graph = smiles_to_graph(smiles)
+        >>> print(graph)
+        Data(x=[3, 9], edge_index=[2, 4], edge_attr=[4, 3], smiles='CCO')
     """
     return from_smiles(smiles, with_hydrogen, kekulize)
