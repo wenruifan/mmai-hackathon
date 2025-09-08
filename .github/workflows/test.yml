@@ -71,12 +71,12 @@ jobs:
       #     pytest --cov=mmai25_hackathon
       #   shell: bash -l {0}
 
-      - name: Determine coverage
-        run: |
-          coverage xml
-        shell: bash -l {0}
+      # - name: Determine coverage
+      #   run: |
+      #     coverage xml
+      #   shell: bash -l {0}
 
-      - name: Report coverage
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+      # - name: Report coverage
+      #   uses: codecov/codecov-action@v4
+      #   with:
+      #     token: ${{ secrets.CODECOV_TOKEN }}
