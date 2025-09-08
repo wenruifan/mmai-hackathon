@@ -40,9 +40,7 @@ class BaseDataset(Dataset):
 
     def __init__(self, *args, **kwargs):
         super().__init__()
-        raise NotImplementedError(
-            "BaseDataset is an abstract class and cannot be instantiated directly."
-        )
+        raise NotImplementedError("BaseDataset is an abstract class and cannot be instantiated directly.")
 
     def __len__(self) -> int:
         """Return the number of samples in the dataset."""

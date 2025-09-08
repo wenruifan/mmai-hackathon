@@ -17,9 +17,7 @@ from torch_geometric.data import Data
 from torch_geometric.utils.smiles import from_smiles
 
 
-def fetch_smiles_from_dataframe(
-    df: Union[pd.DataFrame, str], smiles_col: str, index_col: str = None
-) -> pd.DataFrame:
+def fetch_smiles_from_dataframe(df: Union[pd.DataFrame, str], smiles_col: str, index_col: str = None) -> pd.DataFrame:
     """
     Fetches SMILES strings from a DataFrame or CSV file. Will read the CSV if a path is provided.
 
@@ -58,9 +56,7 @@ def fetch_smiles_from_dataframe(
     return df[smiles_col].to_frame("smiles")
 
 
-def smiles_to_graph(
-    smiles: str, with_hydrogen: bool = False, kekulize: bool = False
-) -> Data:
+def smiles_to_graph(smiles: str, with_hydrogen: bool = False, kekulize: bool = False) -> Data:
     """
     Converts a SMILES string to a molecular graph representation.
 

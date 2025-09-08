@@ -55,9 +55,7 @@ def fetch_protein_sequences_from_dataframe(
     return df[prot_seq_col].to_frame("protein_sequence")
 
 
-def protein_sequence_to_integer_encoding(
-    sequence: str, max_length: int = 1200
-) -> np.ndarray:
+def protein_sequence_to_integer_encoding(sequence: str, max_length: int = 1200) -> np.ndarray:
     """
     Converts a protein sequence into an integer-encoded representation.
 

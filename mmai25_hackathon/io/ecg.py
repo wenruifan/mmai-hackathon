@@ -33,9 +33,7 @@ def get_ecg_paths(base_path: str, csv_path: str):
     df["dat_path"] = abs_dats
 
     before = len(df)
-    df = df[
-        df["hea_path"].map(os.path.exists) & df["dat_path"].map(os.path.exists)
-    ].copy()
+    df = df[df["hea_path"].map(os.path.exists) & df["dat_path"].map(os.path.exists)].copy()
     after = len(df)
     print(f"Matched {after}/{before} records with both .hea and .dat present.")
 

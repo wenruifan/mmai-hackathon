@@ -22,9 +22,7 @@ def get_echo_paths(base_path: str, csv_path: str):
 
     df = pd.read_csv(csv_path)
     if "dicom_filepath" not in df.columns:
-        raise KeyError(
-            "CSV must contain a 'dicom_filepath' column (e.g., files/.../133.dcm)"
-        )
+        raise KeyError("CSV must contain a 'dicom_filepath' column (e.g., files/.../133.dcm)")
 
     df["dicom_filepath"] = df["dicom_filepath"].astype(str).str.strip()
     df["dcm_path"] = df["dicom_filepath"].map(lambda rp: str(base / rp))
@@ -55,9 +53,7 @@ def load_echo_dicom(dcm_path: str):
     try:
         import pydicom
     except ImportError as e:
-        raise ImportError(
-            "pydicom is required. Install with: pip install pydicom"
-        ) from e
+        raise ImportError("pydicom is required. Install with: pip install pydicom") from e
 
     ds = pydicom.dcmread(dcm_path)
     arr = ds.pixel_array
@@ -73,16 +69,10 @@ def load_echo_dicom(dcm_path: str):
         "Rows": int(getattr(ds, "Rows", arr.shape[-2])),
         "Columns": int(getattr(ds, "Columns", arr.shape[-1])),
         "NumberOfFrames": int(getattr(ds, "NumberOfFrames", arr.shape[0])),
-        "FrameTime_ms": float(getattr(ds, "FrameTime", 0.0))
-        if hasattr(ds, "FrameTime")
-        else None,
-        "CineRate": int(getattr(ds, "CineRate", 0))
-        if hasattr(ds, "CineRate")
-        else None,
+        "FrameTime_ms": float(getattr(ds, "FrameTime", 0.0)) if hasattr(ds, "FrameTime") else None,
+        "CineRate": int(getattr(ds, "CineRate", 0)) if hasattr(ds, "CineRate") else None,
         "PhotometricInterpretation": getattr(ds, "PhotometricInterpretation", None),
-        "BitsAllocated": int(getattr(ds, "BitsAllocated", 0))
-        if hasattr(ds, "BitsAllocated")
-        else None,
+        "BitsAllocated": int(getattr(ds, "BitsAllocated", 0)) if hasattr(ds, "BitsAllocated") else None,
         "PixelRepresentation": int(getattr(ds, "PixelRepresentation", 0))
         if hasattr(ds, "PixelRepresentation")
         else None,

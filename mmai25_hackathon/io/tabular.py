@@ -10,7 +10,7 @@ kept to preserve provenance).
 """
 
 from pathlib import Path
-from typing import Dict, FrozenSet, List, Optional, Tuple, Union, overload
+from typing import Dict, FrozenSet, List, Optional, overload, Tuple, Union
 
 import pandas as pd
 
@@ -108,7 +108,7 @@ def _blend_suffixed_columns_inplace(df: pd.DataFrame, suffix_tokens: List[str]) 
 
 @overload
 def read_tabular(
-    paths: Union[List[str], str],
+    paths: Union[List[str], str, List[Path]],
     index_cols: None = ...,
     join: str = "outer",
 ) -> pd.DataFrame:
@@ -120,7 +120,7 @@ def read_tabular(
 
 @overload
 def read_tabular(
-    paths: Union[List[str], str],
+    paths: Union[List[str], str, List[Path]],
     index_cols: List[str],
     join: str = "outer",
 ) -> Union[
@@ -135,7 +135,7 @@ def read_tabular(
 
 
 def read_tabular(
-    paths: Union[List[str], str],
+    paths: Union[str, List[str], List[Path]],
     index_cols: Optional[List[str]] = None,
     join: str = "outer",
 ) -> Union[
@@ -271,7 +271,6 @@ if __name__ == "__main__":
 
     # Example script (assuming folder mimic-iv-3.1 is in the current directory)
     # python -m mmai25_hackathon.io.tabular mimic-iv-3.1 --index-cols subject_id hadm_id charttime --join outer
-
     # NOTE: Expect increase in row count given we are doing outer join and each dataframes may or will have
     #       different relational structures (i.e., admissions to icustays in MIMIC-IV has one-to-many
     #       relationship w.r.t. subject_id and hadm_id)

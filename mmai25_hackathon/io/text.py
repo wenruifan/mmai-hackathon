@@ -128,9 +128,7 @@ def load_text_note(df: pd.DataFrame, note_id: int, return_meta: bool = False):
 
     row = rows.iloc[0]
     if "text" not in df.columns:
-        raise KeyError(
-            "The DataFrame does not include a 'text' column. Re-load with keep_cols including 'text'."
-        )
+        raise KeyError("The DataFrame does not include a 'text' column. Re-load with keep_cols including 'text'.")
     txt = str(row["text"])
     if return_meta:
         meta = row.to_dict()
@@ -151,9 +149,7 @@ if __name__ == "__main__":
         print("Radiology sample text (truncated):", sample_text[:200], "...")
 
     # Discharge notes
-    disc_df = get_text_notes(
-        NOTE_PATH, subset="discharge", include_detail=True
-    )  # include detail join
+    disc_df = get_text_notes(NOTE_PATH, subset="discharge", include_detail=True)  # include detail join
     print(disc_df.head(2))
 
     if not disc_df.empty:

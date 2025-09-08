@@ -30,9 +30,7 @@ def get_cxr_paths(base_path: str, csv_path: str | None = None):
         ]:
             candidates.extend(glob.glob(pat, recursive=True))
         if not candidates:
-            raise FileNotFoundError(
-                "Could not auto-find a metadata CSV. Please pass csv_path explicitly."
-            )
+            raise FileNotFoundError("Could not auto-find a metadata CSV. Please pass csv_path explicitly.")
         csv_path = min(candidates, key=len)
 
     # Read CSV
@@ -47,17 +45,13 @@ def get_cxr_paths(base_path: str, csv_path: str | None = None):
             id_col = lower_map[key]
             break
     if id_col is None:
-        raise KeyError(
-            "No suitable ID column found. Expected one of: 'dicom_id', 'dicom', 'image_id'."
-        )
+        raise KeyError("No suitable ID column found. Expected one of: 'dicom_id', 'dicom', 'image_id'.")
 
     # Scan all JPGs once
     jpg_map = {p.stem: p for p in base.rglob("*.jpg")}
 
     # Map id -> jpg path
-    df["path"] = (
-        df[id_col].astype(str).str.strip().map(lambda x: str(jpg_map.get(x, "")))
-    )
+    df["path"] = df[id_col].astype(str).str.strip().map(lambda x: str(jpg_map.get(x, "")))
 
     # Keep only matches
     before = len(df)
