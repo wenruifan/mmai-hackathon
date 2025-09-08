@@ -8,7 +8,7 @@ dependencies = [
     "black>=25.1.0",
     "isort>=6.0.1",
     "pre-commit>=4.3.0",
-    "pykale@git+https://github.com/pykale/pykale@main[full]",
+    "pykale[full]@git+https://github.com/pykale/pykale@main",
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
     "torch-geometric>=2.6.0",
