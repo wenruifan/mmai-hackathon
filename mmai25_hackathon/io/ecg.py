@@ -1,11 +1,13 @@
 import os
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 
 # ---- Configure your dataset root ----
 DATA_PATH = r"your_data_path_here"
 ECG_DIR = "mimic-iv-ecg-diagnostic-electrocardiogram-matched-subset-1.0"
 FILES_PATH = os.path.join(DATA_PATH, ECG_DIR)
+
 
 # -----------------------------
 # 1) Build paths from record_list
@@ -37,6 +39,7 @@ def get_ecg_paths(base_path: str, csv_path: str):
 
     return df
 
+
 # -----------------------------
 # 2) Load a single ECG record
 # -----------------------------
@@ -53,6 +56,7 @@ def load_ecg_record(hea_path: str):
     rec = os.path.splitext(hea_path)[0]  # drop extension
     signals, fields = wfdb.rdsamp(rec)
     return signals, fields
+
 
 # ---------
 # Example

@@ -1,7 +1,8 @@
-import os
 import glob
-import pandas as pd
+import os
 from pathlib import Path
+
+import pandas as pd
 from PIL import Image
 
 # ---- Configure your dataset root ----
@@ -9,12 +10,12 @@ DATA_PATH = r"your_data_path_here"
 CXR_DIR = "mimic-cxr-jpg-chest-radiographs-with-structured-labels-2.1.0/files"
 FILES_PATH = os.path.join(DATA_PATH, CXR_DIR)
 
+
 # -----------------------------
 # 1) Build paths from metadata
 # -----------------------------
 def get_cxr_paths(base_path: str, csv_path: str | None = None):
-    """Return DataFrame with a resolved `path` to each JPG.
-    """
+    """Return DataFrame with a resolved `path` to each JPG."""
     base = Path(base_path)
     if not base.exists():
         raise FileNotFoundError(f"Base path not found: {base}")
@@ -29,9 +30,7 @@ def get_cxr_paths(base_path: str, csv_path: str | None = None):
         ]:
             candidates.extend(glob.glob(pat, recursive=True))
         if not candidates:
-            raise FileNotFoundError(
-                "Could not auto-find a metadata CSV. Please pass csv_path explicitly."
-            )
+            raise FileNotFoundError("Could not auto-find a metadata CSV. Please pass csv_path explicitly.")
         csv_path = min(candidates, key=len)
 
     # Read CSV
@@ -46,9 +45,7 @@ def get_cxr_paths(base_path: str, csv_path: str | None = None):
             id_col = lower_map[key]
             break
     if id_col is None:
-        raise KeyError(
-            "No suitable ID column found. Expected one of: 'dicom_id', 'dicom', 'image_id'."
-        )
+        raise KeyError("No suitable ID column found. Expected one of: 'dicom_id', 'dicom', 'image_id'.")
 
     # Scan all JPGs once
     jpg_map = {p.stem: p for p in base.rglob("*.jpg")}
@@ -64,6 +61,7 @@ def get_cxr_paths(base_path: str, csv_path: str | None = None):
 
     return df
 
+
 # -----------------------------
 # 2) Load a single image
 # -----------------------------
@@ -73,6 +71,7 @@ def load_cxr_image(path: str, to_gray: bool = True):
         raise FileNotFoundError(f"Image not found: {path}")
     img = Image.open(path)
     return img.convert("L") if to_gray else img.convert("RGB")
+
 
 # ---------
 # Example

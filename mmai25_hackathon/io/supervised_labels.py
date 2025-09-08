@@ -12,7 +12,9 @@ import pandas as pd
 
 
 def fetch_supervised_labels_from_dataframe(
-    df: Union[pd.DataFrame, str], label_col: Union[str, Sequence[str]], index_col: str = None
+    df: Union[pd.DataFrame, str],
+    label_col: Union[str, Sequence[str]],
+    index_col: str = None,
 ) -> pd.DataFrame:
     """
     Fetches supervision labels from a DataFrame or CSV file. Will read the CSV if a path is provided.
