@@ -3,8 +3,8 @@ import pandas as pd
 from pathlib import Path
 
 # ---- Configure your dataset root ----
-DATA_PATH = r"D:\MMAI'25 Hackathon"
-ECG_DIR   = "mimic-iv-ecg-diagnostic-electrocardiogram-matched-subset-1.0"
+DATA_PATH = r"your_data_path_here"
+ECG_DIR = "mimic-iv-ecg-diagnostic-electrocardiogram-matched-subset-1.0"
 FILES_PATH = os.path.join(DATA_PATH, ECG_DIR)
 
 # -----------------------------

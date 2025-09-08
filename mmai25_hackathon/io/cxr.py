@@ -5,12 +5,9 @@ from pathlib import Path
 from PIL import Image
 
 # ---- Configure your dataset root ----
-DATA_PATH = r"D:\MMAI'25 Hackathon"
-FILES_PATH = os.path.join(
-    DATA_PATH,
-    "mimic-cxr-jpg-chest-radiographs-with-structured-labels-2.1.0",
-    "files",
-)
+DATA_PATH = r"your_data_path_here"
+CXR_DIR = "mimic-cxr-jpg-chest-radiographs-with-structured-labels-2.1.0/files"
+FILES_PATH = os.path.join(DATA_PATH, CXR_DIR)
 
 # -----------------------------
 # 1) Build paths from metadata
