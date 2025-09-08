@@ -1,17 +1,21 @@
 """
-Provides label handling utilities fetching labels.
-For now, we limit it to supporting CSV and DataFrame inputs.
+Provides labels handling utilities fetching supervision labels for
+supervised learning. For now, we limit it to supporting CSV and DataFrame inputs.
+
+The labels can be single-column or multi-column used for
+regression or classification.
 """
 
-from typing import Union, Sequence
+from typing import Sequence, Union
+
 import pandas as pd
 
 
-def fetch_labels_from_dataframe(
-    df: pd.DataFrame, label_col: Union[str, Sequence[str]], index_col: str = None
+def fetch_supervised_labels_from_dataframe(
+    df: Union[pd.DataFrame, str], label_col: Union[str, Sequence[str]], index_col: str = None
 ) -> pd.DataFrame:
     """
-    Fetches labels from a DataFrame or CSV file. Will read the CSV if a path is provided.
+    Fetches supervision labels from a DataFrame or CSV file. Will read the CSV if a path is provided.
 
     Args:
         df (Union[pd.DataFrame, str]): DataFrame or path to CSV file.
