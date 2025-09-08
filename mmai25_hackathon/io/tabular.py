@@ -93,7 +93,9 @@ def read_tabular(
         (merged_df, first_stem), *rest = frames_with_stems
         left_suffix = f"_{first_stem}"
         for df, stem in rest:
-            merged_df = merged_df.merge(df, on=list(key_subset), how=join, suffixes=(left_suffix, f"_{stem}"))
+            merged_df = merged_df.merge(
+                df, on=list(key_subset), how=join, suffixes=(left_suffix, f"_{stem}")
+            )
             left_suffix = f"_{stem}"
         merged_groups.append((frozenset(key_subset), merged_df, left_suffix))
 
@@ -122,12 +124,17 @@ def read_tabular(
         keys_i, df_i, suffix_i = merged_groups[i]
         keys_j, df_j, suffix_j = merged_groups[j]
 
-        merged_df = df_i.merge(df_j, on=join_columns, how=join, suffixes=(suffix_i, suffix_j))
+        merged_df = df_i.merge(
+            df_j, on=join_columns, how=join, suffixes=(suffix_i, suffix_j)
+        )
         merged_groups[i] = (keys_i | keys_j, merged_df, suffix_j)
         del merged_groups[j]
 
     # Assemble output as a tuple of (sorted_keys_tuple, DataFrame) pairs
     output = tuple(
-        (tuple(sorted(keys)), df) for (keys, df, _suffix) in sorted(merged_groups, key=lambda g: tuple(sorted(g[0])))
+        (tuple(sorted(keys)), df)
+        for (keys, df, _suffix) in sorted(
+            merged_groups, key=lambda g: tuple(sorted(g[0]))
+        )
     )
     return output[0] if len(output) == 1 else output

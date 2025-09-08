@@ -1,12 +1,14 @@
 import os
-import pandas as pd
 from pathlib import Path
 from typing import Literal, Optional, Tuple
 
+import pandas as pd
+
 # ---- Configure your dataset root ----
 DATA_PATH = r"your_data_path_here"
-TEXT_DIR  = "mimic-iv-note-deidentified-free-text-clinical-notes-2.2/note"
+TEXT_DIR = "mimic-iv-note-deidentified-free-text-clinical-notes-2.2/note"
 NOTE_PATH = os.path.join(DATA_PATH, TEXT_DIR)
+
 
 # -----------------------------
 # 1) Load notes (radiology or discharge)
@@ -15,7 +17,16 @@ def get_text_notes(
     base_note_path: str,
     subset: Literal["radiology", "discharge"] = "radiology",
     include_detail: bool = False,
-    keep_cols: Optional[Tuple[str, ...]] = ("note_id", "subject_id", "hadm_id", "note_type", "note_seq", "charttime", "storetime", "text"),
+    keep_cols: Optional[Tuple[str, ...]] = (
+        "note_id",
+        "subject_id",
+        "hadm_id",
+        "note_type",
+        "note_seq",
+        "charttime",
+        "storetime",
+        "text",
+    ),
 ) -> pd.DataFrame:
     """
     Load free-text clinical notes.
@@ -43,7 +54,7 @@ def get_text_notes(
     main_name = f"{subset}.csv"
     detail_name = f"{subset}_detail.csv"
 
-    main_csv= base / main_name
+    main_csv = base / main_name
     detail_csv = base / detail_name
 
     if not main_csv.exists():
@@ -87,6 +98,7 @@ def get_text_notes(
 
     return df
 
+
 # -----------------------------
 # 2) Fetch text for a given note_id
 # -----------------------------
@@ -116,12 +128,15 @@ def load_text_note(df: pd.DataFrame, note_id: int, return_meta: bool = False):
 
     row = rows.iloc[0]
     if "text" not in df.columns:
-        raise KeyError("The DataFrame does not include a 'text' column. Re-load with keep_cols including 'text'.")
+        raise KeyError(
+            "The DataFrame does not include a 'text' column. Re-load with keep_cols including 'text'."
+        )
     txt = str(row["text"])
     if return_meta:
         meta = row.to_dict()
         return txt, meta
     return txt
+
 
 # ---------
 # Example
@@ -136,7 +151,9 @@ if __name__ == "__main__":
         print("Radiology sample text (truncated):", sample_text[:200], "...")
 
     # Discharge notes
-    disc_df = get_text_notes(NOTE_PATH, subset="discharge", include_detail=True)  # include detail join
+    disc_df = get_text_notes(
+        NOTE_PATH, subset="discharge", include_detail=True
+    )  # include detail join
     print(disc_df.head(2))
 
     if not disc_df.empty:

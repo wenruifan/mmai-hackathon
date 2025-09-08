@@ -1,7 +1,8 @@
-import os
 import glob
-import pandas as pd
+import os
 from pathlib import Path
+
+import pandas as pd
 from PIL import Image
 
 # ---- Configure your dataset root ----
@@ -9,12 +10,12 @@ DATA_PATH = r"your_data_path_here"
 CXR_DIR = "mimic-cxr-jpg-chest-radiographs-with-structured-labels-2.1.0/files"
 FILES_PATH = os.path.join(DATA_PATH, CXR_DIR)
 
+
 # -----------------------------
 # 1) Build paths from metadata
 # -----------------------------
 def get_cxr_paths(base_path: str, csv_path: str | None = None):
-    """Return DataFrame with a resolved `path` to each JPG.
-    """
+    """Return DataFrame with a resolved `path` to each JPG."""
     base = Path(base_path)
     if not base.exists():
         raise FileNotFoundError(f"Base path not found: {base}")
@@ -54,7 +55,9 @@ def get_cxr_paths(base_path: str, csv_path: str | None = None):
     jpg_map = {p.stem: p for p in base.rglob("*.jpg")}
 
     # Map id -> jpg path
-    df["path"] = df[id_col].astype(str).str.strip().map(lambda x: str(jpg_map.get(x, "")))
+    df["path"] = (
+        df[id_col].astype(str).str.strip().map(lambda x: str(jpg_map.get(x, "")))
+    )
 
     # Keep only matches
     before = len(df)
@@ -63,6 +66,7 @@ def get_cxr_paths(base_path: str, csv_path: str | None = None):
     print(f"Matched {after}/{before} rows using ID column '{id_col}'.")
 
     return df
+
 
 # -----------------------------
 # 2) Load a single image
@@ -73,6 +77,7 @@ def load_cxr_image(path: str, to_gray: bool = True):
         raise FileNotFoundError(f"Image not found: {path}")
     img = Image.open(path)
     return img.convert("L") if to_gray else img.convert("RGB")
+
 
 # ---------
 # Example

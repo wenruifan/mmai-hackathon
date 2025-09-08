@@ -17,7 +17,9 @@ from torch_geometric.data import Data
 from torch_geometric.utils.smiles import from_smiles
 
 
-def fetch_smiles_from_dataframe(df: Union[pd.DataFrame, str], smiles_col: str, index_col: str = None) -> pd.DataFrame:
+def fetch_smiles_from_dataframe(
+    df: Union[pd.DataFrame, str], smiles_col: str, index_col: str = None
+) -> pd.DataFrame:
     """
     Fetches SMILES strings from a DataFrame or CSV file. Will read the CSV if a path is provided.
 
@@ -28,13 +30,15 @@ def fetch_smiles_from_dataframe(df: Union[pd.DataFrame, str], smiles_col: str, i
 
     Returns:
         pd.DataFrame: A single column DataFrame containing the SMILES strings with name `"smiles"`.
-        
+
     Examples:
-        >>> df = pd.DataFrame({
-        ...     'id': [1, 2, 3],
-        ...     'smiles': ['CCO', 'C1=CC=CC=C1', 'CC(=O)O'],
-        ... })
-        >>> smiles = fetch_smiles_from_dataframe(df, smiles_col='smiles', index_col='id')
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "id": [1, 2, 3],
+        ...         "smiles": ["CCO", "C1=CC=CC=C1", "CC(=O)O"],
+        ...     }
+        ... )
+        >>> smiles = fetch_smiles_from_dataframe(df, smiles_col="smiles", index_col="id")
         >>> print(smiles)
             smiles
         id
@@ -54,7 +58,9 @@ def fetch_smiles_from_dataframe(df: Union[pd.DataFrame, str], smiles_col: str, i
     return df[smiles_col].to_frame("smiles")
 
 
-def smiles_to_graph(smiles: str, with_hydrogen: bool = False, kekulize: bool = False) -> Data:
+def smiles_to_graph(
+    smiles: str, with_hydrogen: bool = False, kekulize: bool = False
+) -> Data:
     """
     Converts a SMILES string to a molecular graph representation.
 
@@ -71,7 +77,7 @@ def smiles_to_graph(smiles: str, with_hydrogen: bool = False, kekulize: bool = F
             - `num_nodes`: Number of nodes in the graph.
             - `num_edges`: Number of edges in the graph.
             - `smiles`: The original SMILES string as a graph attribute.
-            
+
     Examples:
         >>> smiles = "CCO"
         >>> graph = smiles_to_graph(smiles)
