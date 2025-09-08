@@ -1,8 +1,8 @@
-# MMAI '25 Hackathon Base Source Code
+# MultimodalAI'25 Hackathon Base Source Code
 
 ## Overview
 
-This repository provides the base source code for the MMAI '25 workshop Hackathon. It is designed to help participants get started quickly with a pre-configured Python environment and essential dependencies for development and testing.
+This repository provides the base source code for the MultimodalAI'25 workshop Hackathon. It is designed to help participants get started quickly with a pre-configured Python environment and essential dependencies for development and testing.
 
 ## Requirements
 
