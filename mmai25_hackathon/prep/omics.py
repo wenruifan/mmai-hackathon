@@ -1,3 +1,66 @@
+"""
+Multi-omics preprocessing (linear pipeline)
+===========================================
+
+What this script does
+---------------------
+Given:
+  1) A *label table* (CSV/TSV) with sample IDs as the first column (index)
+     and at least one column containing class labels.
+  2) One or more *omics tables* (CSV/TSV), each with features as rows and
+     samples as columns (common in bio datasets).
+
+It will:
+  - Load & filter labels (drop NA; optionally keep a subset of label values).
+  - Load omics, transpose to [samples x features], align to the label index.
+  - Drop labels that are missing from **all** modalities.
+  - Clean missing values per modality (drop columns with >=10% NA, then mean-impute).
+  - (Optional) Min–max normalize features per modality independently.
+  - (Optional) Remove features below a variance threshold (per modality).
+  - Map string labels → integers 0..K-1.
+  - Save:
+      save_path/label.csv            (mapped integer labels; see NOTE below)
+      save_path/{name}_names.csv     (feature names for each modality)
+      save_path/{name}_feat.csv      (feature matrix per modality)
+
+IMPORTANT shape assumptions
+---------------------------
+- Label table: index = sample IDs (unique), column `label_column_name` holds labels.
+- Each omics file: index = feature IDs, columns = sample IDs BEFORE transpose.
+  After loading we call `.transpose()` so final shape is [samples x features].
+
+File format notes
+-----------------
+- All readers use `index_col=0`. Your first column must be the sample (for labels)
+  or feature (for omics) index.
+- `sep` defaults to tab (`"\t"`). Change `sep` if you have commas.
+
+Saving notes (be careful!)
+--------------------------
+- This script currently writes labels as a Series *without* index or header
+  (see `labels.to_csv(..., index=False, header=False)`). That **discards sample IDs**.
+  Keep this if your downstream code expects a plain vector. If you need the sample
+  IDs preserved, change to `index=True, header=True` and update downstream.
+
+Quick start (example)
+---------------------
+data_paths = [
+    ("/path/to/mRNA.tsv",        "mRNA"),
+    ("/path/to/methylation.tsv", "methylation"),
+    ("/path/to/miRNA.tsv",       "miRNA"),
+]
+run_preprocessing_pipeline(
+    label_path="/path/to/labels.tsv",
+    data_paths=data_paths,
+    save_path="./BRCA/processed/",
+    label_column_name="PAM50Call_RNAseq",
+    label_column_values=None,
+    clean_missing=True,
+    normalize=True,
+    var_threshold=[None, 1e-6, 1e-6]  # one per modality (or None to skip)
+)
+"""
+
 import os
 import pandas as pd
 from typing import List, Tuple, Optional, Dict
@@ -14,8 +77,35 @@ def load_label_table(
 ) -> pd.Series:
     """
     Load label table and return a 1D Series of labels indexed by sample ID.
-    - Keeps only rows where label_column_name is non-null
-    - (Optional) keeps only rows whose label value ∈ label_column_values
+
+    Parameters
+    ----------
+    label_path : str
+        Path to the label file (CSV/TSV). The first column must be sample IDs
+        (will be used as the index).
+    sep : str, default="\t"
+        Field separator used in the file.
+    label_column_name : str
+        Name of the column that contains class labels. Required.
+    label_column_values : list[str] | None
+        If provided, keep only rows whose label ∈ this set (useful to focus on
+        selected classes, e.g., five PAM50 subtypes).
+
+    Returns
+    -------
+    labels : pd.Series
+        1D Series (index = sample IDs, values = label strings), sorted by index.
+
+    Behavior
+    --------
+    - Drops rows with missing labels (NA in `label_column_name`).
+    - Optionally filters labels to a user-specified subset.
+    - Prints class counts for sanity-checking.
+
+    Common pitfalls
+    ---------------
+    - If your sample IDs are not in the first column, set `index_col=0` will be wrong.
+      Fix the file or change the reader accordingly.
     """
     label_df = pd.read_csv(label_path, sep=sep, index_col=0)
     if label_column_name is None:
@@ -40,31 +130,72 @@ def load_label_table(
 
 def load_single_omics(path: str, name: str, sep: str = "\t") -> Tuple[str, pd.DataFrame]:
     """
-    Load one omics modality:
-    - Reads table with index_col=0
-    - Transposes to shape [samples x features]
-    - Sets neat index/column names
-    Returns (name, df)
+    Load one omics modality.
+
+    Steps
+    -----
+    - Reads a matrix with `index_col=0` (features as rows, samples as columns).
+    - Transposes to shape [samples x features] (machine-learning friendly).
+    - Assigns index/column names for readability.
+
+    Parameters
+    ----------
+    path : str
+        Path to the omics file (CSV/TSV). First column must be feature IDs.
+    name : str
+        Short identifier for this modality (e.g., "mRNA", "methylation").
+    sep : str
+        Field separator.
+
+    Returns
+    -------
+    (name, df) : tuple[str, pd.DataFrame]
+        Name and the processed DataFrame (index = sample IDs, columns = feature IDs).
     """
     df = pd.read_csv(path, sep=sep, index_col=0).transpose()
     df.index.names = ["sample"]
     df.columns.names = ["feature"]
+
+    # Sanity checks (non-fatal; change to asserts if you want strictness)
+    # - Ensure no duplicate sample IDs
+    if not df.index.is_unique:
+        print(f"[WARN] Duplicate sample IDs found in {name}. Consider deduplication.")
+
+    # - Ensure no duplicate feature names
+    if not df.columns.is_unique:
+        print(f"[WARN] Duplicate feature names found in {name}. Consider deduplication.")
+
     return name, df
 
 
 def remove_missing_labels(df: pd.DataFrame, valid_sample_index: pd.Index) -> pd.DataFrame:
-    """Keep only rows whose sample IDs appear in the label index; sort rows."""
+    """
+    Keep only rows (samples) present in `valid_sample_index`, then sort rows.
+
+    Why this matters
+    ----------------
+    Ensures every sample in each modality has a corresponding label entry and
+    aligns row order for consistent saving/merging downstream.
+    """
     df = df[df.index.isin(valid_sample_index)]
     return df.sort_index(axis=0)
 
 
 def clean_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     """
-    1) Drop columns (features) with ≥10% missing values (keep cols with >=90% non-NA).
-    2) Fill any remaining NA by column mean.
-    3) Assert no missing remains.
+    Handle missing values per modality.
+
+    Procedure
+    ---------
+    1) Drop columns (features) with ≥10% missing values (keep columns with >=90% non-NA).
+    2) Fill any remaining NA by column mean (simple imputation).
+    3) Error if any NA remains (guards against silent failures).
+
+    Tunables
+    --------
+    - Adjust the 10% threshold by changing `min_non_na` if needed.
     """
-    min_non_na = int(len(df.index) * 0.9)
+    min_non_na = int(len(df.index) * 0.9)  # keep columns with >=90% observed
     df = df.dropna(axis=1, thresh=min_non_na)
     df = df.fillna(df.mean())
 
@@ -76,8 +207,17 @@ def clean_missing_values(df: pd.DataFrame) -> pd.DataFrame:
 def normalize_minmax(df: pd.DataFrame) -> pd.DataFrame:
     """
     Min–max normalize each feature independently: (x - min) / (max - min).
-    Note: If a column is constant, denominator becomes 0 → will yield NaN/inf.
-    We replace those with 0.0 safely.
+
+    Notes
+    -----
+    - If a column is constant (max == min), denominator = 0.
+      We temporarily replace the 0 denom with NA and then fill NA with 0.0,
+      effectively leaving that feature as all zeros (safe default).
+
+    When to use
+    -----------
+    - Useful when features have different scales. If your downstream method
+      is scale-invariant (e.g., tree models), normalization may be optional.
     """
     col_min = df.min()
     col_max = df.max()
@@ -89,13 +229,28 @@ def normalize_minmax(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def remove_low_variance_features(df: pd.DataFrame, threshold: Optional[float]) -> pd.DataFrame:
-    """Optionally drop columns with variance < threshold."""
+    """
+    Optionally drop columns with variance < threshold.
+
+    Parameters
+    ----------
+    threshold : float | None
+        If None, do nothing. Otherwise, retain only features whose variance >= threshold.
+        Typical tiny thresholds: 1e-8, 1e-6, etc.
+
+    Tip
+    ---
+    - Use per-modality thresholds to reflect different numeric scales before normalization.
+    """
     if threshold is None:
         return df
     return df.loc[:, df.var() >= threshold]
 
 
 def print_omics_shapes(omics: List[Tuple[str, pd.DataFrame]], title: str):
+    """
+    Utility to log modality shapes for quick inspection.
+    """
     print(f"\nOmic modality shape ({title}):")
     for name, df in omics:
         print(f" - {name} shape: {df.shape}")
@@ -108,9 +263,18 @@ def check_label_indices_availability(
 ) -> Tuple[bool, List[str]]:
     """
     Check whether each sample in labels is present in at least one modality.
-    Returns:
-      - is_all_available: bool
-      - labels_to_remove: list of sample IDs to drop from labels
+
+    Returns
+    -------
+    is_all_available : bool
+        True if every labeled sample is present in ≥1 modality.
+    labels_to_remove : list[str]
+        Labeled sample IDs that do not appear in any modality (to be dropped).
+
+    Why this matters
+    ----------------
+    Keeps the label vector consistent with the available data. Otherwise you'd
+    carry labels for samples you never actually feed to a model.
     """
     combined_indices = set()
     for _, df in omics:
@@ -122,7 +286,21 @@ def check_label_indices_availability(
 
 
 def map_labels_to_int(labels: pd.Series) -> Tuple[pd.Series, Dict[str, int]]:
-    """Map unique label strings to 0..K-1 integers, return (mapped_series, mapping_dict)."""
+    """
+    Map unique label strings to integers 0..K-1 (order = first appearance order).
+
+    Returns
+    -------
+    mapped : pd.Series
+        Same index as `labels`, values are ints in [0, K-1], name="Class".
+    mapping : dict[str, int]
+        Dictionary of {original_label -> int_code} for reproducibility/logging.
+
+    Notes
+    -----
+    - If you need a deterministic order (e.g., alphabetical), change the
+      enumeration order to `for i, label in enumerate(sorted(unique))`.
+    """
     unique = labels.unique()
     mapping = {label: i for i, label in enumerate(unique)}
     mapped = labels.map(mapping).rename("Class")
@@ -139,28 +317,73 @@ def save_processed(
     save_label: bool = True,
     save_path: Optional[str] = None,
 ):
+    """
+    Save processed outputs to disk.
+
+    Parameters
+    ----------
+    omics : list[(name, df)]
+        Each df is [samples x features], aligned to the final label index.
+    labels : pd.Series | None
+        Integer-mapped labels (index = samples). If None or `save_label=False`,
+        the label file will not be saved.
+    data_paths : list[(orig_path, name)]
+        Original (path, name) pairs, used here only to keep naming consistent.
+    label_path : str | None
+        Kept for parity with the class interface (not used for writing).
+    save_label : bool
+        Whether to write `label.csv`.
+    save_path : str | None
+        Directory to save files. Defaults to current directory.
+
+    Writes
+    ------
+    - label.csv
+      CURRENTLY written **without** index/header to keep compatibility with
+      some pipelines that expect a raw vector. Change to include index if needed.
+    - {name}_names.csv
+      1D list of feature names (as they appear in the df.columns) *excluding*
+      the 1st column if you later decide to prepend something. Right now it
+      simply dumps the columns[1:], mirroring your original behavior.
+      (See NOTE below.)
+    - {name}_feat.csv
+      The full feature matrix [samples x features], written without index/header.
+
+    NOTE about `{name}_names.csv`
+    -----------------------------
+    Your original code uses `names = list(df.columns[1:])`. That drops the first
+    feature name. Keep as-is if this is intentional for downstream compatibility.
+    If not intentional, change to `names = list(df.columns)`.
+
+    Tip
+    ---
+    Add versioning to `save_path` (e.g., include a timestamp or config hash).
+    """
     print("Saving the processed data...")
-    omics_names = [os.path.basename(p[1]) for p in data_paths]
+    omics_names = [os.path.basename(p[1]) for p in data_paths]  # currently unused; kept for parity
     if save_path is None:
         save_path = "./"
 
+    # ---- Save labels (optional) ----
     if save_label and labels is not None and label_path is not None:
-            
         label_out = os.path.join(save_path, "label.csv")
         os.makedirs(os.path.dirname(label_out), exist_ok=True)
-        # print(f" - label path: {label_out}, label shape: {labels.shape}")
-        # labels.drop([labels.columns[0]], axis=0, inplace=True)
+        # WARNING: This drops sample IDs and the column name.
         labels.to_csv(label_out, index=False, header=False)
 
+    # ---- Save each modality ----
     for (orig_path, name), (_, df) in zip(data_paths, omics):
         name_out_path = os.path.join(save_path, f"{name}_names.csv")
         feat_out_path = os.path.join(save_path, f"{name}_feat.csv")
         os.makedirs(os.path.dirname(name_out_path), exist_ok=True)
+
+        # NOTE: Preserve your original slicing behavior.
         names = list(df.columns[1:])
         name_df = pd.DataFrame(names)
         name_df.to_csv(name_out_path, index=False, header=False)
-        df.to_csv(feat_out_path, index=False, header=False)
 
+        # Save feature matrix (no index/header) for compact downstream loading
+        df.to_csv(feat_out_path, index=False, header=False)
 
 
 # -----------------------------
@@ -179,15 +402,46 @@ def run_preprocessing_pipeline(
     ):
     """
     Run the full preprocessing pipeline as a linear script.
-    This mirrors the steps in the MultiOmicsPreprocessor class but is structured
-    as a single script for clarity.
+
+    Parameters
+    ----------
+    label_path : str
+        Path to the label file (CSV/TSV). Must have sample IDs in the first column.
+    data_paths : list[(path, name)]
+        List of (omics_file_path, modality_name) tuples.
+        Each omics file must have features as rows and samples as columns (pre-transpose).
+    save_path : str
+        Directory to write processed outputs.
+    label_column_name : str
+        Column in the label file that contains class labels to predict.
+    label_column_values : list[str] | None
+        If provided, restrict to these label classes (others are dropped).
+    clean_missing : bool
+        If True, drop high-NA features and mean-impute remaining NA per modality.
+    normalize : bool
+        If True, min–max normalize features per modality.
+    var_threshold : list[float|None] | None
+        Per-modality variance thresholds. Must match `len(data_paths)` if provided.
+        Use None to skip variance filtering for a modality.
+
+    Output files
+    ------------
+    - save_path/label.csv
+    - save_path/{name}_names.csv
+    - save_path/{name}_feat.csv
+
+    Logging
+    -------
+    Prints shapes and class counts at each key step for traceability.
+
+    Notes
+    -----
+    - The order of saved rows follows the sorted label index.
+    - If you later join modalities, ensure consistent row order across files.
     """
     # ----- User-configurable inputs (same semantics as your class version) -----
-    
     num_omics = len(data_paths)  # not strictly needed but kept for parity
-    sep = "\t"
-
-
+    sep = "\t"                   # adjust if using CSV with commas
 
     # ----------------- Step 1: Load labels -----------------
     labels = load_label_table(
@@ -204,16 +458,18 @@ def run_preprocessing_pipeline(
     print_omics_shapes(omics, "Raw/Input omic modalities")
 
     # ----------------- Step 3: Remove samples w/ missing labels -----------------
+    # Align each modality to the (possibly filtered) label index
     omics = [(name, remove_missing_labels(df, labels.index)) for name, df in omics]
     print_omics_shapes(omics, "After missing label removal")
 
     # ----------------- Step 4: Drop labels not present in ANY modality ----------
     is_ok, labels_to_remove = check_label_indices_availability(labels, omics)
     if labels_to_remove:
+        # If a sample has a label but appears in none of the modalities, drop it.
         labels = labels.drop(labels_to_remove)
     print(f"Are all labels available in omic modalities? {is_ok}\n")
 
-    # After dropping labels, ensure omics use the same (now reduced) label set
+    # After dropping such labels, re-align all modalities again
     omics = [(name, remove_missing_labels(df, labels.index)) for name, df in omics]
 
     # ----------------- Step 5: Clean missing values (per modality) --------------
@@ -237,6 +493,7 @@ def run_preprocessing_pipeline(
 
     # ----------------- Step 8: Map labels to integers ---------------------------
     labels_mapped, mapping = map_labels_to_int(labels)
+    # Consider saving `mapping` as JSON alongside outputs if reproducibility is critical.
 
     # ----------------- Step 9: Save outputs ------------------------------------
     save_processed(
@@ -247,3 +504,5 @@ def run_preprocessing_pipeline(
         save_label=True,
         save_path=save_path,
     )
+
+    print("Done.")
