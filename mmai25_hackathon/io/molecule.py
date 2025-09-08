@@ -94,6 +94,6 @@ if __name__ == "__main__":
 
     # Take from Peizhen's csv file for DrugBAN training
     df = fetch_smiles_from_dataframe(args.csv_path, smiles_col="SMILES")
-    for i, row in enumerate(df["smiles"].head(5), 1):
-        graph = smiles_to_graph(row)
+    for i, smiles in enumerate(df["smiles"].head(5), 1):
+        graph = smiles_to_graph(smiles)
         print(i, graph)

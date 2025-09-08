@@ -86,14 +86,14 @@ def protein_sequence_to_integer_encoding(sequence: str, max_length: int = 1200) 
 if __name__ == "__main__":
     import argparse
 
-    # Example script: python -m mmai25_hackathon.io.molecule dataset.csv
+    # Example script: python -m mmai25_hackathon.io.protein dataset.csv
 
-    parser = argparse.ArgumentParser(description="Process SMILES strings.")
-    parser.add_argument("csv_path", type=str, help="Path to the CSV file containing SMILES strings.")
+    parser = argparse.ArgumentParser(description="Process protein sequences.")
+    parser.add_argument("csv_path", type=str, help="Path to the CSV file containing protein sequences.")
     args = parser.parse_args()
 
     # Take from Peizhen's csv file for DrugBAN training
     df = fetch_protein_sequences_from_dataframe(args.csv_path, prot_seq_col="Protein")
-    for i, row in enumerate(df["protein_sequence"].head(5), 1):
-        graph = protein_sequence_to_integer_encoding(row)
-        print(i, graph)
+    for i, prot_seq in enumerate(df["protein_sequence"].head(5), 1):
+        integer_encoding = protein_sequence_to_integer_encoding(prot_seq)
+        print(i, integer_encoding)

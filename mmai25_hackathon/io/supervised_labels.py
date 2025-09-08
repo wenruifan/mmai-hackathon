@@ -25,15 +25,12 @@ def fetch_supervised_labels_from_dataframe(
     Returns:
         pd.DataFrame: A DataFrame containing the labels with name `"label"` if a single column is provided,
                       or the original column names if multiple columns are provided.
-                      
+
     Examples:
-        >>> df = pd.DataFrame({
-        ...     'id': [1, 2, 3],
-        ...     'feature1': [0.5, 0.6, 0.7],
-        ...     'feature2': [1.5, 1.6, 1.7],
-        ...     'label': [0, 1, 0]
-        ... })
-        >>> labels = fetch_supervised_labels_from_dataframe(df, label_col='label', index_col='id')
+        >>> df = pd.DataFrame(
+        ...     {"id": [1, 2, 3], "feature1": [0.5, 0.6, 0.7], "feature2": [1.5, 1.6, 1.7], "label": [0, 1, 0]}
+        ... )
+        >>> labels = fetch_supervised_labels_from_dataframe(df, label_col="label", index_col="id")
         >>> print(labels)
             label
         id
@@ -54,3 +51,18 @@ def fetch_supervised_labels_from_dataframe(
         return df[list(label_col)]
 
     return df[label_col].to_frame("label")
+
+
+if __name__ == "__main__":
+    import argparse
+
+    # Example script: python -m mmai25_hackathon.io.supervised_labels dataset.csv
+
+    parser = argparse.ArgumentParser(description="Process supervision labels for regression/classification.")
+    parser.add_argument("csv_path", type=str, help="Path to the CSV file containing supervision labels.")
+    args = parser.parse_args()
+
+    # Take from Peizhen's csv file for DrugBAN training
+    df = fetch_supervised_labels_from_dataframe(args.csv_path, label_col="Y")
+    for i, label in enumerate(df["label"].head(5), 1):
+        print(i, label)
