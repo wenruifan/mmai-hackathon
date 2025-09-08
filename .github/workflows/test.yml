@@ -46,25 +46,20 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ matrix.path }}
-          key: ${{ runner.os }}-python${{ matrix.python-version }}-pip-20250302-${{ hashFiles('**/setup.py') }}
+          key: ${{ runner.os }}-python${{ matrix.python-version }}-pip-20250908-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-python${{ matrix.python-version }}-pip-20250302-
-          # We have used a softer matching strategy for the full hash of setup.py, as recommended by GitHub.
-          # See: https://github.com/davronaliyev/Cache-dependencies-in-GitHub-Actions/blob/main/examples.md#python---pip
-          # This restores the cache first and then downloads any changed packages to avoid updating the cache with
-          # every change to the setup.py file, thus reducing the storage requirements of GitHub Action.
-          # We set a date tag to the cache key to show the updated date of the cache. We can update this date tag to
-          # generate new cache after every major changes in setup.py.
+            ${{ runner.os }}-python${{ matrix.python-version }}-pip-20250908-
 
-      - name: Install mmai25_hackathon dependencies
+      - name: Install from pyproject (single list)
+        env:
+          PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
         run: |
-          pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
-          pip install torch_geometric==2.6.0
-          pip install torch_scatter==2.1.2 -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
-          pip install torch_sparse==0.6.18 -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
-          pip install torch_cluster==1.6.3 -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
-          pip install torch_spline_conv==1.2.2 -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
-          pip install -e .
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          # PyG compiled extensions (need the wheel index)
+          python -m pip install \
+            -f https://data.pyg.org/whl/torch-2.6.0+cpu.html \
+            torch_scatter==2.1.2 torch_sparse==0.6.18 torch_cluster==1.6.3 torch_spline_conv==1.2.2
         shell: bash -l {0}
 
       - name: Run tests with thread limits
