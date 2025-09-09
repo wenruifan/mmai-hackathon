@@ -1,8 +1,7 @@
 # CXR Data I/O Module (`cxr.py`)
-
 This module provides functions to load chest X-ray (CXR) data from the MIMIC-CXR-JPG v2.1.0 dataset.
 For this hackathon, we have used a subset of the dataset while preserving the original folder structure and file organisation.
----
+
 
 ## Data Description
 
@@ -16,8 +15,6 @@ This dataset contains:
 - `mimic-cxr-2.1.0-test-set-labeled.csv`: manually curated labels used for evaluation of CheXpert and NegBio.
 - `IMAGE_FILENAMES`: plain text file with relative paths to all images.
 - Linked to all the MIMIC Clinical Databases via `subject_id`.
-
----
 
 ## Folder Structure
 
@@ -36,14 +33,14 @@ files/
 
 Each patient (e.g., `p101`) may have multiple **study folders** (e.g., `s133`, `s231`, etc.), each containing one or more CXR images in `.jpg` format.
 
----
+
 
 ## Functional Overview
 
 This module supports:
 - Mapping `dicom_id` to image paths.
 - Loading images as grayscale or RGB using PIL.
----
+
 
 ## Quick Example
 
@@ -61,7 +58,7 @@ Example:
 DATA_PATH = r"D:\Datasets\MIMIC-CXR-JPG"
 ```
 
----
+
 
 ### Step 2: Load image paths using metadata
 
@@ -76,7 +73,7 @@ df = get_cxr_paths(FILES_PATH)
 # df = get_cxr_paths(FILES_PATH, csv_file)
 ```
 
----
+
 
 ### Step 3: Load and display a single image
 
@@ -86,9 +83,9 @@ if not df.empty:
     img.show()  # Optional: preview the image
 ```
 
----
 
-## 📂 Module Location
+
+## Module Location
 
 This module is located at:
 
