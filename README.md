@@ -1,15 +1,18 @@
 # MultimodalAI'25 Hackathon Base Source Code
 
+[![tests](https://github.com/pykale/mmai-hackathon/workflows/test/badge.svg)](https://github.com/pykale/mmai-hackathon/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/pykale/mmai-hackathon/branch/main/graph/badge.svg?token=jmIYPbA2le)](https://codecov.io/gh/pykale/mmai-hackathon)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/pykale/mmai-hackathon/blob/main/LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org)
+
 ## Overview
 
 This repository provides the base source code for the MultimodalAI'25 workshop Hackathon. It is designed to help participants get started quickly with a pre-configured Python environment and essential dependencies for development and testing.
 
 ## Requirements
 
-- Python 3.9, 3.10, 3.11, or 3.12 (other versions are not supported)
+- Python3.10, 3.11, or 3.12
 - Git
-
-
 
 ## Installation
 
@@ -26,22 +29,27 @@ You can set up your development environment using one of the following methods: 
 ### Main Installation Steps
 
 1. **Clone the repository:**
-	```bash
-	git clone https://github.com/pykale/mmai-hackathon.git
-	cd mmai-hackathon
-	```
+
+```bash
+git clone https://github.com/pykale/mmai-hackathon.git
+cd mmai-hackathon
+```
+
 2. **Set up a virtual environment (recommended):**
-	```bash
-	python3 -m venv .venv
-	source .venv/bin/activate
-	```
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
 3. **Install dependencies:**
-	```bash
-	pip install --upgrade pip
-	# Install pykale with all optional dependencies (full extras) from git first
-	pip install "git+https://github.com/pykale/pykale@main[full]"
-	pip install -e .
-	```
+
+```bash
+pip install --upgrade pip
+# Install pykale with all optional dependencies (full extras) from git first
+pip install "git+https://github.com/pykale/pykale@main[full]"
+pip install -e .
+```
 
 #### Installing torch-geometric (pyg) and its extensions
 
@@ -60,63 +68,73 @@ You can also use the following environment-specific guides:
 ### Using conda (Anaconda/Miniconda)
 
 1. **Create and activate a conda environment:**
-	```bash
-	conda create -n mmai-hackathon python=3.10
-	conda activate mmai-hackathon
-	```
-2. **Install dependencies:**
-	```bash
-	pip install -e .
-	```
 
+   ```bash
+   conda create -n mmai-hackathon python=3.10
+   conda activate mmai-hackathon
+   ```
+
+2. **Install dependencies:**
+
+   ```bash
+   pip install -e .
+   ```
 
 ### Using uv (Ultra-fast Python package manager)
 
 Assuming `uv` is already installed:
 
 1. **Create and activate a uv virtual environment:**
-	```bash
-	uv venv .venv
-	source .venv/bin/activate
-	```
+
+   ```bash
+   uv venv .venv
+   source .venv/bin/activate
+   ```
+
 2. **Install dependencies:**
-	```bash
-	uv pip install -e .
-	```
+
+   ```bash
+   uv pip install -e .
+   ```
 
 ---
 
 1. **Clone the repository:**
-	```bash
-	git clone https://github.com/pykale/mmai-hackathon.git
-	cd mmai-hackathon
-	```
+
+   ```bash
+   git clone https://github.com/pykale/mmai-hackathon.git
+   cd mmai-hackathon
+   ```
 
 2. **Set up a virtual environment (recommended):**
-	```bash
-	python3 -m venv .venv
-	source .venv/bin/activate
-	```
+
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
 
 3. **Install dependencies:**
-	```bash
-	pip install --upgrade pip
-	pip install -e .
-	```
+
+   ```bash
+   pip install --upgrade pip
+   pip install -e .
+   ```
 
 4. **(Optional) Install pre-commit hooks:**
-	```bash
-	pre-commit install
-	```
+
+   ```bash
+   pre-commit install
+   ```
 
 5. **Run tests:**
-	```bash
-	pytest
-	```
+
+   ```bash
+   pytest
+   ```
 
 ## Notes
 
-- The project restricts Python versions to 3.9–3.12 as specified in `.python-version` and `pyproject.toml`.
+- The project restricts Python versions to 3.10–3.12 as specified in `.python-version` and `pyproject.toml`.
 - For more information about the dependencies, see `pyproject.toml`.
 
 ## Authors

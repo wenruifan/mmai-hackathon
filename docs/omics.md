@@ -12,7 +12,7 @@ We provide a **two-step pipeline** for preparing and loading multi-omics data in
 
 ## 📦 Requirements
 
-- Python ≥ 3.9
+- Python ≥ 3.10
 - [PyTorch](https://pytorch.org/)
 - [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/)
 - [torch-sparse](https://github.com/rusty1s/pytorch_sparse)
