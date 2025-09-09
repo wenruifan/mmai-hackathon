@@ -1,13 +1,12 @@
 """
-Provides utilities to handle molecular data, specifically SMILES strings.
-Includes functions to read SMILES from dataframes or CSV files and convert
-SMILES strings to graph representations using PyTorch Geometric (PyG).
+Molecular data utilities for handling SMILES strings and graph conversion.
 
-To process molecules to a graph representation, we will use
-the native implementation from PyG called `from_smiles`.
+Functions:
+    - fetch_smiles_from_dataframe: Extract SMILES strings from DataFrame or CSV.
+    - smiles_to_graph: Convert SMILES to a molecular graph (uses PyG's from_smiles).
 
-We explicitly redefine `from_smiles` to `smiles_to_graph` here
-for clarity on how to use it in the context of this hackathon.
+Note:
+    - The function smiles_to_graph is a wrapper for PyG's native from_smiles implementation, provided for clarity in this hackathon context.
 """
 
 from typing import Union
