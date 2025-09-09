@@ -1,23 +1,14 @@
 """
-The core of the hackathon is to create a multimodal dataset and dataloader
-that can seamlessly handle and scale with multiple modalities such as
-proteins, molecules, images, text, tabular, and time series data.
+Base dataset and dataloader utilities for custom and graph data.
 
-We provided a barebones `torch.utils.data.Dataset` implementation
-named `BaseDataset`, which has the base methods mainly used when
-building custom datasets.
+The goal is to have easy to extend dataset class for various modalities that
+can also be combined to obtain multimodal datasets.
 
-The class serves as a template for creating custom datasets.
+We provided two base classes, but feel free to modify them as needed.
 
-Optionally, we include an `__add__` as potential base idea to aggregate
-multiple modalities into a single dataset. Read `__add__` docstring
-for more details. You may consider other ways to achieve this that
-work better for your use case.
-
-We also provide `torch_geometric.data.DataLoader` as the default DataLoader
-instead of `torch.utils.data.DataLoader` which we aliased as `BaseDataLoader`
-for handling both graph and non-graph data seamlessly in-case there are some
-potential ideas that needs overriding of the DataLoader.
+Classes:
+    - BaseDataset: Template for custom datasets, supports multimodal aggregation.
+    - BaseDataLoader: Alias for torch_geometric.data.DataLoader for graph/non-graph batching.
 """
 
 from torch.utils.data import Dataset
@@ -62,6 +53,10 @@ class BaseDataset(Dataset):
         """
         Aggregate data with heterogenous modalities.
 
+        Note:
+            This is an optional idea that we imagined, but feel free to ignore it
+            if there are any better ways you may thought of to better integrate different modalities.
+
         For example, we may have:
         ```python
         dataset1 = ECGDataset(...)
@@ -69,13 +64,16 @@ class BaseDataset(Dataset):
         ...
         datasetN = TextDataset(...)
         ```
+
         One way we imagine to combine them is by using the `+` operator,
         such that all we need to do is:
         ```python
         multimodal_dataset = dataset1 + dataset2 + ... + datasetN
+        # If we only have dataset1 and datasetN, we can simply do
+        bimodal_dataset = dataset1 + datasetN
         ```
         """
-        raise NotImplementedError("Subclasses must implement __add__ method if needed.")
+        raise NotImplementedError("Subclasses may implement __add__ method if needed.")
 
 
 class BaseDataLoader(PyGDataLoader):
