@@ -1,6 +1,9 @@
 """
-Provides utility functions for handling protein sequences, including reading from
-dataframes or CSV files and converting sequences to integer-encoded representations.
+Protein sequence utilities for reading and integer encoding.
+
+Functions:
+    - fetch_protein_sequences_from_dataframe: Extract protein sequences from DataFrame or CSV.
+    - protein_sequence_to_integer_encoding: Convert a sequence to integer-encoded array.
 """
 
 from typing import Union
