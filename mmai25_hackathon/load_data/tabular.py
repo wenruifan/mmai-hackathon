@@ -1,272 +1,220 @@
 """
-Compact utilities for reading CSVs and aggregating tables.
+Tabular data utilities for reading, merging, and graph conversion.
 
-Exposes `read_tabular(paths, index_cols=None, join='outer')`, which either
-concatenates inputs column-wise (no keys) or merges by overlapping join keys
-until disjoint groups remain. Non-key column collisions get filename-based
-suffixes; columns that only differ by those suffixes are blended back into a
-single column **only if their values agree row-wise** (otherwise suffixes are
-kept to preserve provenance).
+Functions:
+    - read_tabular: Load a single CSV file into a DataFrame.
+    - merge_multiple_dataframes: Merge DataFrames by join keys, handling column collisions with suffixes.
+    - tabular_to_graph: Convert a DataFrame to a graph using row/sample similarity.
 """
 
 from pathlib import Path
-from typing import Dict, FrozenSet, List, Optional, overload, Tuple, Union
+from typing import Dict, FrozenSet, List, Optional, Sequence, Tuple, Union
 
+import numpy as np
 import pandas as pd
+import torch
+from sklearn.metrics import pairwise_kernels
+from torch_geometric.data import Data
+
+from ..utils import find_global_cutoff, symmetrize_matrix
 
 
-def _blend_suffixed_columns_inplace(df: pd.DataFrame, suffix_tokens: List[str]) -> None:
+def read_tabular(path: Union[str, Path], sep: str = ",") -> pd.DataFrame:
     """
-    Coalesces any columns that are identical up to a filename-based suffix.
-
-    Columns like "caregiver_id_emar" and "caregiver_id_chartevents" (where the
-    suffixes come from filename stems) will be examined together with their
-    unsuffixed base column "caregiver_id" (if present). If all overlapping
-    non-null values across the variants are equal for every row, those variants
-    are blended into a single unsuffixed base column; otherwise all suffixed
-    columns are kept intact.
-
-    This operation is applied to **all** columns with known suffix tokens, not
-    just the declared join keys.
+    Reads a single tabular text file into a DataFrame.
 
     Args:
-        df (pd.DataFrame): The DataFrame to modify in place.
-        suffix_tokens (List[str]): Known suffix tokens (e.g., ["_chartevents", "_emar"])
-            that were used during merges, typically derived from filename stems.
+        path (Union[str, Path]): Path to the tabular text file.
+        sep (str): Value separator in the tabular text file. Default: ",".
 
     Returns:
-        None: The operation mutates `df` in place.
+        pd.DataFrame: The loaded DataFrame.
 
     Examples:
-        If df has columns ["caregiver_id_emar", "caregiver_id_chartevents"] and
-        their values agree row-wise wherever both are non-null, they become a
-        single "caregiver_id" column. If any disagreement exists, both suffixed
-        columns are retained.
+        >>> df = read_tabular("data.csv")
+        >>> print(df.head())
     """
-    # 1) Group columns by their base name using the known suffix tokens.
-    base_to_cols: Dict[str, List[str]] = {}
-
-    # First pass: find suffixed variants and map them to their base names.
-    for col in list(df.columns):
-        for token in suffix_tokens:
-            if col.endswith(token):
-                base = col[: -len(token)]
-                if base:  # avoid empty base
-                    base_to_cols.setdefault(base, []).append(col)
-        # Do not add unsuffixed columns here; we add them in a second pass
-        # only if we found at least one suffixed variant for that base.
-
-    # Second pass: include unsuffixed base columns when appropriate.
-    for base in list(base_to_cols.keys()):
-        if base in df.columns and base not in base_to_cols[base]:
-            base_to_cols[base].append(base)
-
-    # 2) For each base, try to blend if all overlapping values are equal.
-    for base, cols in base_to_cols.items():
-        # Only act if there are at least two variants (suffix and/or base)
-        if len(cols) <= 1:
-            continue
-
-        # Ensure deterministic order: prefer the unsuffixed base first if present
-        cols_sorted = sorted(cols, key=lambda c: (0 if c == base else 1, c))
-
-        # Check for conflicts across all pairs on rows where both are non-null
-        conflict = False
-        for i in range(len(cols_sorted)):
-            s_i = df[cols_sorted[i]]
-            for j in range(i + 1, len(cols_sorted)):
-                s_j = df[cols_sorted[j]]
-                mask = s_i.notna() & s_j.notna() & (s_i != s_j)
-                if mask.any():
-                    conflict = True
-                    break
-            if conflict:
-                break
-
-        if conflict:
-            # Keep variants (and suffixes) as-is to preserve provenance.
-            continue
-
-        # No conflicts: coalesce to an unsuffixed base column using first-non-null
-        blended = None
-        for col in cols_sorted:
-            blended = df[col] if blended is None else blended.combine_first(df[col])
-
-        if base in df.columns:
-            # Overwrite existing base column; drop only the non-base variants.
-            df[base] = blended
-            to_drop = [c for c in cols_sorted if c != base]
-        else:
-            # Insert a new base column near the first variant; drop all variants.
-            insert_at = df.columns.get_loc(cols_sorted[0])
-            df.insert(loc=insert_at, column=base, value=blended)
-            to_drop = cols_sorted
-
-        if to_drop:
-            df.drop(columns=to_drop, inplace=True)
+    # Just provide thin wrapper around pd.read_csv for function availability.
+    return pd.read_csv(path, sep=sep)
 
 
-@overload
-def read_tabular(
-    paths: Union[List[str], str, List[Path]],
-    index_cols: None = ...,
-    join: str = "outer",
-) -> pd.DataFrame:
-    """
-    Overload: when `index_cols` is None or empty, returns a single concatenated DataFrame.
-    """
-    ...
-
-
-@overload
-def read_tabular(
-    paths: Union[List[str], str, List[Path]],
-    index_cols: List[str],
-    join: str = "outer",
-) -> Union[
-    Tuple[()],  # empty when no frames contain any of the keys
-    Tuple[Tuple[str, ...], pd.DataFrame],  # single component (unpacked)
-    Tuple[Tuple[Tuple[str, ...], pd.DataFrame], ...],  # multiple components
-]:
-    """
-    Overload: when `index_cols` is provided, returns key-partitioned components.
-    """
-    ...
-
-
-def read_tabular(
-    paths: Union[str, List[str], List[Path]],
+def merge_multiple_dataframes(
+    dfs: Sequence[pd.DataFrame],
+    dfs_name: Optional[Sequence[str]] = None,
     index_cols: Optional[List[str]] = None,
     join: str = "outer",
-) -> Union[
-    pd.DataFrame,
-    Tuple[()],
-    Tuple[Tuple[str, ...], pd.DataFrame],
-    Tuple[Tuple[Tuple[str, ...], pd.DataFrame], ...],
-]:
+) -> List[Tuple[Tuple[str, ...], pd.DataFrame]]:
     """
-    Reads and aggregates tabular CSV files by concatenation or merges.
+    Merge a sequence of DataFrames by shared keys until disjoint components remain.
 
-    Behavior:
-      • If `index_cols` is falsy: read all CSVs and concatenate column-wise.
-      • Else: group CSVs by the exact subset of provided keys they contain,
-        merge within each subset, then greedily merge groups that share keys
-        until only disjoint key-components remain.
-      • During merges, non-key column collisions receive filename-based suffixes.
-        After each merge, **all columns** that differ only by those suffixes are
-        blended back into a single base column **only if their overlapping values
-        are exactly equal**; otherwise the suffixed variants are kept.
+    - If `index_cols` is None/empty, return a single component with all frames concatenated
+      column-wise: [((), concat_df)].
+    - Otherwise: (1) merge frames that share the same subset of `index_cols`, then
+      (2) greedily merge groups whose key sets overlap (prefer larger overlaps, then
+      smaller combined size). Column collisions get suffixes from `dfs_name`
+      (or `_df{i}` if not provided).
 
     Args:
-        paths (Union[List[str], str]): A list of CSV paths or a single CSV path.
-        index_cols (Optional[List[str]]): Candidate join keys. If None/empty,
-            inputs are concatenated along columns. Default: None.
-        join (str): Merge strategy: one of {"outer", "inner", "left", "right"}.
-            Default: "outer".
+        dfs: Input DataFrames.
+        dfs_name: Optional names (same length as `dfs`) used to derive merge suffixes.
+        index_cols: Candidate join keys.
+        join: One of {"outer", "inner", "left", "right"}.
 
     Returns:
-        Union[
-            pd.DataFrame,
-            Tuple[()],
-            Tuple[Tuple[str, ...], pd.DataFrame],
-            Tuple[Tuple[Tuple[str, ...], pd.DataFrame], ...],
-        ]:
-            - If `index_cols` is falsy: the concatenated DataFrame.
-            - Else:
-                * `()` if no CSV contains any requested key.
-                * `(keys_tuple, DataFrame)` for a single disjoint component.
-                * `((keys_tuple, DataFrame), ...)` for multiple components.
-
-    Raises:
-        ValueError: If `join` is not one of {"outer", "inner", "left", "right"}.
+        List of components as (sorted_keys_tuple, merged_dataframe).
 
     Examples:
-        >>> read_tabular(["a.csv", "b.csv"])
-        DataFrame(...)
-
-        >>> read_tabular(["df1.csv", "df2.csv", "df3.csv"], index_cols=["id", "site"])
-        ((('id', 'site'), DataFrame), (('subject',), DataFrame), ...)
+        >>> df1 = pd.DataFrame({"id": [1, 2], "a": [10, 20]})
+        >>> df2 = pd.DataFrame({"id": [1, 2], "b": [0.1, 0.2]})
+        >>> df3 = pd.DataFrame({"site": ["A", "B"], "c": [5, 6]})
+        >>> comps = merge_multiple_dataframes(
+        ...     [df1, df2, df3],
+        ...     dfs_name=["X", "Y", "Z"],
+        ...     index_cols=["id", "site"],
+        ... )
+        >>> [keys for keys, _ in comps]
+        [('id',), ('site',)]
+        >>> # The first component merges df1 & df2 on 'id'; non-key collisions would get
+        >>> # suffixes '_X' and '_Y'. The second component is just df3 keyed by 'site'.
     """
     valid_joins = {"outer", "inner", "left", "right"}
     if join not in valid_joins:
         raise ValueError(f"`join` must be one of {valid_joins}, got {join!r}")
 
-    # Normalize and load
-    if isinstance(paths, str):
-        paths = [paths]
-    dataframes: List[pd.DataFrame] = [pd.read_csv(path) for path in paths]
-    filename_stems: List[str] = [Path(path).stem for path in paths]
-    suffix_tokens: List[str] = [f"_{stem}" for stem in filename_stems]
+    if dfs_name is not None and len(dfs_name) != len(dfs):
+        raise ValueError(
+            f"Length of `dfs_name` must match length of `dfs`. Found {len(dfs_name)} and {len(dfs)} respectively."
+        )
 
-    # Concatenate mode
+    if not dfs:
+        return []
+
+    # Concatenate-only mode
     if not index_cols:
-        concatenated = pd.concat(dataframes, axis="columns", join=join)
-        # Post-process: also blend any identical suffixed columns in concat mode
-        _blend_suffixed_columns_inplace(concatenated, suffix_tokens)
-        return concatenated
+        return [((), pd.concat(list(dfs), axis="columns", join=join))]
 
-    # Group frames by the exact subset of keys they contain
-    frames_by_exact_keys: Dict[Tuple[str, ...], List[Tuple[pd.DataFrame, str]]] = {}
-    for df, stem in zip(dataframes, filename_stems):
-        key_subset = tuple(col for col in index_cols if col in df.columns)
-        if key_subset:
-            frames_by_exact_keys.setdefault(key_subset, []).append((df, stem))
+    # Prepare suffix labels
+    labels = [f"_{name}" for name in (dfs_name or [f"df{i}" for i in range(len(dfs))])]
 
-    if not frames_by_exact_keys:
-        return tuple()  # No frames had any requested keys
+    # Bucket frames by the exact subset of keys they actually contain
+    frames_by_subset: Dict[Tuple[str, ...], List[Tuple[pd.DataFrame, str]]] = {}
+    for df, label in zip(dfs, labels):
+        subset = tuple(col for col in index_cols if col in df.columns)
+        if subset:
+            frames_by_subset.setdefault(subset, []).append((df, label))
 
-    # Merge within each exact key-subset
-    merged_groups: List[Tuple[FrozenSet[str], pd.DataFrame, str]] = []
-    for key_subset, frames_with_stems in frames_by_exact_keys.items():
-        (acc_df, first_stem), *rest = frames_with_stems
-        left_suffix = f"_{first_stem}"
-        for df, stem in rest:
-            acc_df = acc_df.merge(df, on=list(key_subset), how=join, suffixes=(left_suffix, f"_{stem}"))
-            # Blend any identical suffixed columns (keys and non-keys)
-            _blend_suffixed_columns_inplace(acc_df, suffix_tokens)
-            left_suffix = f"_{stem}"
-        merged_groups.append((frozenset(key_subset), acc_df, left_suffix))
+    if not frames_by_subset:
+        return []
 
-    # Greedy pairwise merges across groups until disjoint (prefer larger overlaps)
+    # Merge within each exact key-subset first
+    groups: List[Tuple[FrozenSet[str], pd.DataFrame, str]] = []  # (keys, df, last_suffix)
+    for subset, items in frames_by_subset.items():
+        (merged_df, left_suffix), *rest = items
+        for df, right_suffix in rest:
+            merged_df = merged_df.merge(
+                df,
+                on=list(subset),
+                how=join,
+                suffixes=(left_suffix, right_suffix),
+            )
+            left_suffix = right_suffix
+        groups.append((frozenset(subset), merged_df, left_suffix))
+
+    # Greedy pairwise merging across groups until no overlaps remain
     while True:
-        best_pair = None
+        best = None
         best_score = None  # (-overlap_size, combined_cells)
-        n = len(merged_groups)
+        n = len(groups)
 
         for i in range(n):
-            keys_i, df_i, sfx_i = merged_groups[i]
+            keys_i, df_i, sfx_i = groups[i]
             for j in range(i + 1, n):
-                keys_j, df_j, sfx_j = merged_groups[j]
-                shared = keys_i & keys_j
-                if not shared:
+                keys_j, df_j, sfx_j = groups[j]
+                overlap = keys_i & keys_j
+                if not overlap:
                     continue
-                score = (-len(shared), df_i.size + df_j.size)
+                score = (-len(overlap), df_i.size + df_j.size)
                 if best_score is None or score < best_score:
                     best_score = score
-                    best_pair = (i, j, sorted(shared))
+                    best = (i, j, sorted(overlap))
 
-        if best_pair is None:
+        if best is None:
             break
 
-        i, j, join_cols = best_pair
-        keys_i, df_i, sfx_i = merged_groups[i]
-        keys_j, df_j, sfx_j = merged_groups[j]
+        i, j, on_cols = best
+        keys_i, df_i, sfx_i = groups[i]
+        keys_j, df_j, sfx_j = groups[j]
+        merged_df = df_i.merge(df_j, on=on_cols, how=join, suffixes=(sfx_i, sfx_j))
+        groups[i] = (keys_i | keys_j, merged_df, sfx_j)
+        del groups[j]
 
-        merged_df = df_i.merge(df_j, on=join_cols, how=join, suffixes=(sfx_i, sfx_j))
-        # Blend any identical suffixed columns (keys and non-keys)
-        _blend_suffixed_columns_inplace(merged_df, suffix_tokens)
+    # Materialize as (sorted_keys_tuple, DataFrame)
+    components: List[Tuple[Tuple[str, ...], pd.DataFrame]] = [
+        (tuple(sorted(keys)), df) for (keys, df, _sfx) in sorted(groups, key=lambda g: tuple(sorted(g[0])))
+    ]
+    return components
 
-        merged_groups[i] = (keys_i | keys_j, merged_df, sfx_j)
-        del merged_groups[j]
 
-    # Assemble output
-    output = tuple(
-        (tuple(sorted(keys)), df) for (keys, df, _) in sorted(merged_groups, key=lambda g: tuple(sorted(g[0])))
+def tabular_to_graph(
+    df: pd.DataFrame, edge_per_node: int = 10, metric: str = "cosine", threshold: Optional[float] = None
+) -> Data:
+    """
+    Convert tabular data from DataFrame into a graph representation. The nodes are derived from the rows
+    or samples in the DataFrame, and edges are created based on similarity between the rows.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the features. Assumes the subsets (i.e., train/test/val)
+            separation is done separately and `df` contains all samples.
+        edge_per_node (int): Number of edges to create per node based on similarity. Default: 10.
+        metric (str): Metric to compute similarity between rows. Default: "cosine".
+        threshold (Optional[float]): Predefined thresholds for edge creation. If None, it will be estimated
+            from the data given `edge_per_node`. Default: None.
+
+    Returns:
+        torch_geometric.data.Data: The resulting graph representation containing:
+            - `x`: Node feature matrix with shape [num_nodes, num_node_features].
+            - `edge_index`: Graph connectivity in COO format with shape [2, num_edges].
+            - `edge_attr`: Edge feature matrix with shape [num_edges, num_edge_features].
+            - `num_nodes`: Number of nodes in the graph.
+            - `num_edges`: Number of edges in the graph.
+            - `feature_names`: List of feature names corresponding to columns in `df`.
+            - `metric`: The metric used for similarity computation.
+            - `threshold`: The threshold used for edge creation.
+    """
+    # Assumes all columns can be casted to float32
+    features = df.to_numpy(dtype=np.float32)
+    similarity_matrix = pairwise_kernels(features, metric=metric)
+    if threshold is None:
+        threshold = find_global_cutoff(similarity_matrix, edge_per_node)
+
+    # We do not need to remove self-loops as they will be removed in GNN layers if needed
+    adjacency_matrix = symmetrize_matrix(similarity_matrix >= threshold, method="maximum")
+    # Get edges where we have shape [2, num_edges]
+    edge_index = np.vstack(np.nonzero(adjacency_matrix)).astype(np.int64)
+    # We use the sparsified similarity value as the edge weights
+    edge_weight = similarity_matrix[adjacency_matrix]
+
+    # Cast to torch tensors
+    x = torch.from_numpy(features)
+    edge_index = torch.from_numpy(edge_index)
+    edge_weight = torch.from_numpy(edge_weight)
+
+    return Data(
+        x,
+        edge_index,
+        edge_weight=edge_weight,
+        feature_names=df.columns.to_list(),
+        metric=metric,
+        threshold=threshold,
     )
-    return output[0] if len(output) == 1 else output
 
 
 if __name__ == "__main__":
+    # separate function for loading tabular data
+    # 1. read_tabular (only single csv)
+    # 2. merge multiple dataframes (optimize the query greedily)
+    # 3. concat multiple dataframes
+
     import argparse
 
     # Example script (assuming folder mimic-iv-3.1 is in the current directory)
@@ -283,12 +231,24 @@ if __name__ == "__main__":
 
     # Recursive glob for CSV files
     csv_files = list(Path(args.base_path).rglob("*.csv"))
-    stems = [f.stem for f in csv_files]
 
-    print(f"Merging {len(csv_files)} CSV files including:")
-    for f in csv_files:
-        print(f" - {f}")
+    # Load multiple dataframes
+    dfs = [pd.read_csv(f) for f in csv_files]
+    df_names = [f.stem for f in csv_files]
 
-    merged_indices, df = read_tabular(csv_files, index_cols=args.index_cols, join=args.join)
+    # Merge dataframes
+    components = merge_multiple_dataframes(dfs, dfs_name=df_names, index_cols=args.index_cols, join=args.join)
 
-    print(df)
+    for keys, comp_df in components:
+        print(f"Component keys: {keys}")
+        print(comp_df.head())
+        print()
+
+    # Quick test for tabular_to_graph
+    from sklearn.datasets import make_classification
+
+    # Create a synthetic dataset
+    X, _ = make_classification(n_samples=100, n_features=20, random_state=42)
+    df = pd.DataFrame(X, columns=[f"feature_{i}" for i in range(X.shape[1])])
+    graph = tabular_to_graph(df, edge_per_node=5, metric="cosine")
+    print(graph)
