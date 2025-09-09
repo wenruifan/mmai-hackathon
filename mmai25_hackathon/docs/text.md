@@ -2,7 +2,7 @@
 
 This module provides utilities to load **free-text clinical notes** from the **MIMIC-IV Note (v2.2)** dataset. It supports loading both radiology and discharge notes, with optional metadata and detail tables. For this hackathon, we have used a subset of the dataset while preserving the original folder structure and file organisation.
 
----
+
 
 ## Data Description
 
@@ -25,7 +25,7 @@ Each table contains a `note_id` composed of `subject_id`, note domain abbreviati
 - `discharge.csv`: long-form discharge summaries including **reason for admission**, **hospital course**, and **discharge plan**.
 - `discharge_detail.csv`: contains author placeholders and additional structured metadata.
 
----
+
 
 ## Directory Structure
 
@@ -39,7 +39,7 @@ mimic-iv-note-deidentified-free-text-clinical-notes-2.2/note/
 └── radiology_detail.csv
 ```
 
----
+
 
 ## Functional Overview
 
@@ -48,7 +48,7 @@ This module supports:
 - Subset selection of specific columns (e.g., `note_id`, `text`, `charttime`, etc.).
 - Retrieving the full clinical note from the `text` column using a specific note_id.
 
----
+
 
 ## Quick Example
 
@@ -66,7 +66,7 @@ Example:
 DATA_PATH = r"D:\Datasets\MIMIC-IV-NOTE"
 ```
 
----
+
 
 ### Step 2: Load notes
 
@@ -80,7 +80,7 @@ radi_df = get_text_notes(NOTE_PATH, subset="radiology", include_detail=False)
 disc_df = get_text_notes(NOTE_PATH, subset="discharge", include_detail=True)
 ```
 
----
+
 
 ### Step 3: Retrieve a specific note
 
@@ -97,9 +97,9 @@ print("Note Text:", text[:300])
 print("Metadata:", meta)
 ```
 
----
 
-## 📂 Module Location
+
+## Module Location
 
 This module is located at:
 

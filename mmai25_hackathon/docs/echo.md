@@ -2,7 +2,7 @@
 
 This module provides utilities to load echocardiograms (ECHO) from the **MIMIC-IV-ECHO** dataset. It supports resolving `.dcm` DICOM file paths using `echo-record-list.csv` and reading the DICOMs using `pydicom`. For this hackathon, we have used a subset of the dataset while preserving the original folder structure and file organisation.
 
----
+
 
 ## Data Description
 
@@ -29,14 +29,14 @@ files/
         └── s247/
             └── 247.dcm
 ```
----
+
 
 ## Supporting CSVs
 
 - `echo-record-list.csv`: maps `dicom_filepath` to the actual `.dcm` file, includes `subject_id`, `study_id`, and `acquisition_datetime`.
 - `echo-study-list.csv`: links `study_id` to corresponding cardiologist reports (`note_id`, `note_seq`, `note_charttime`).
 
----
+
 ## Functional Overview
 
 This module supports:
@@ -44,7 +44,7 @@ This module supports:
 - Loading `.dcm` cine sequences using `pydicom`.
 - Extracting key metadata such as number of frames, resolution, frame time, etc.
 
----
+
 
 ## Quick Example
 
@@ -62,7 +62,7 @@ Example:
 DATA_PATH = r"D:\Datasets\MIMIC-IV-ECHO"
 ```
 
----
+
 
 ### Step 2: Load DICOM paths
 
@@ -73,7 +73,7 @@ csv_file = os.path.join(FILES_PATH, "echo-record-list.csv")
 df = get_echo_paths(FILES_PATH, csv_file)
 ```
 
----
+
 
 ### Step 3: Load a DICOM and extract metadata
 
@@ -85,9 +85,9 @@ if not df.empty:
     print("Resolution: {}x{}".format(meta["Rows"], meta["Columns"]))
 ```
 
----
 
-## 📂 Module Location
+
+## Module Location
 
 This module is located at:
 

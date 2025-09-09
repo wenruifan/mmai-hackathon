@@ -2,7 +2,6 @@
 
 This module provides utilities to load diagnostic electrocardiograms (ECGs) from the **MIMIC-IV-ECG** dataset. It includes path resolution based on `record_list.csv` and loading support via the `wfdb` package. For this hackathon, we have used a subset of the dataset while preserving the original folder structure and file organisation.
 
----
 
 ## Data Description
 
@@ -38,7 +37,7 @@ Each `study_id` has a `.dat` and `.hea` pair as a WFDB record.
 - `machine_measurements.csv`: machine-generated measurements for each ECG.
 - `machine_measurements_data_dictionary.csv`: description for each measurement column.
 
----
+
 
 ## Functional Overview
 
@@ -46,7 +45,7 @@ This module supports:
 - Resolving full `.hea` and `.dat` paths from `record_list.csv`.
 - Loading ECG signals and metadata using `wfdb.rdsamp`.
 
----
+
 
 ## Quick Example
 
@@ -64,7 +63,7 @@ Example:
 DATA_PATH = r"D:\Datasets\MIMIC-IV-ECG"
 ```
 
----
+
 
 ### Step 2: Load ECG paths
 
@@ -75,7 +74,7 @@ csv_file = os.path.join(FILES_PATH, "record_list.csv")
 df = get_ecg_paths(FILES_PATH, csv_file)
 ```
 
----
+
 
 ### Step 3: Load and view a single ECG
 
@@ -86,12 +85,13 @@ if not df.empty:
     print("Sampling freq:", meta.get("fs"))
 ```
 
----
 
-## 📂 Module Location
+
+## Module Location
 
 This module is located at:
 
 ```
 mmai25_hackathon/load_data/ecg.py
 ```
+---
