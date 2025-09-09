@@ -21,7 +21,7 @@ print(labels_df)
 
 ```
    label
-id      
+id
 1   cat
 2   dog
 3   cat
@@ -39,7 +39,7 @@ print(one_hot_df)
 
 ```
    label_cat  label_dog  label_mouse
-id                                
+id
 1        1.0        0.0         0.0
 2        0.0        1.0         0.0
 3        1.0        0.0         0.0

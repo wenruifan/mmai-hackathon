@@ -21,7 +21,7 @@ print(smiles_df)
 
 ```
    smiles
-id        
+id
 1      CCO
 2  C1=CC=CC=C1
 3   CC(=O)O

@@ -21,7 +21,7 @@ print(prot_df)
 
 ```
       protein_sequence
-id                   
+id
 1  MKTAYIAKQRQISFVKSH
 2         GAVLILLLV
 3      TTPSYVAFTDTER

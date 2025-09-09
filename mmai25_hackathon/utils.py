@@ -7,10 +7,8 @@ Functions:
 """
 
 import numpy as np
-
+from sklearn.utils._param_validation import Integral, Interval, StrOptions, validate_params
 from sklearn.utils.validation import check_symmetric
-from sklearn.utils._param_validation import validate_params, Interval, Integral, StrOptions
-
 
 VALID_SYMMETRIZATIONS = {"average", "maximum", "minimum", "lower", "upper"}
 
