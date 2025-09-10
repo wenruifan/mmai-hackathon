@@ -89,7 +89,7 @@ def protein_sequence_to_integer_encoding(sequence: str, max_length: int = 1200) 
 if __name__ == "__main__":
     import argparse
 
-    # Example script: python -m mmai25_hackathon.io.protein dataset.csv
+    # Example script: python -m mmai25_hackathon.load_data.protein dataset.csv
 
     parser = argparse.ArgumentParser(description="Process protein sequences.")
     parser.add_argument("csv_path", type=str, help="Path to the CSV file containing protein sequences.")

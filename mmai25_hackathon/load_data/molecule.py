@@ -85,7 +85,7 @@ def smiles_to_graph(smiles: str, with_hydrogen: bool = False, kekulize: bool = F
 if __name__ == "__main__":
     import argparse
 
-    # Example script: python -m mmai25_hackathon.io.molecule dataset.csv
+    # Example script: python -m mmai25_hackathon.load_data.molecule dataset.csv
 
     parser = argparse.ArgumentParser(description="Process SMILES strings.")
     parser.add_argument("csv_path", type=str, help="Path to the CSV file containing SMILES strings.")

@@ -92,7 +92,7 @@ def one_hot_encode_labels(labels: pd.DataFrame, columns: Union[Sequence[str], st
 if __name__ == "__main__":
     import argparse
 
-    # Example script: python -m mmai25_hackathon.io.supervised_labels dataset.csv
+    # Example script: python -m mmai25_hackathon.load_data.supervised_labels dataset.csv
 
     parser = argparse.ArgumentParser(description="Process supervision labels for regression/classification.")
     parser.add_argument("csv_path", type=str, help="Path to the CSV file containing supervision labels.")

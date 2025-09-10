@@ -218,7 +218,7 @@ if __name__ == "__main__":
     import argparse
 
     # Example script (assuming folder mimic-iv-3.1 is in the current directory)
-    # python -m mmai25_hackathon.io.tabular mimic-iv-3.1 --index-cols subject_id hadm_id charttime --join outer
+    # python -m mmai25_hackathon.load_data.tabular mimic-iv-3.1 --index-cols subject_id hadm_id charttime --join outer
     # NOTE: Expect increase in row count given we are doing outer join and each dataframes may or will have
     #       different relational structures (i.e., admissions to icustays in MIMIC-IV has one-to-many
     #       relationship w.r.t. subject_id and hadm_id)
