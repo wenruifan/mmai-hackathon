@@ -11,7 +11,7 @@ This repository provides the base source code for the MultimodalAI'25 workshop H
 
 ## Requirements
 
-- Python3.10, 3.11, or 3.12
+- Python 3.10, 3.11, or 3.12
 - Git
 
 ## Installation
