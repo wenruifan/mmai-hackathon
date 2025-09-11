@@ -195,7 +195,13 @@ def load_mimic_iv_ehr(
     # Load tables
     logger.info("Loading tables from: %s", ehr_path)
     dfs = {
-        table: read_tabular(path, subset_cols.get(table, None), index_cols, filter_rows, raise_errors=raise_errors)
+        table: read_tabular(
+            path,
+            (subset_cols or {}).get(table, None),
+            index_cols,
+            filter_rows,
+            raise_errors=raise_errors,
+        )
         for table, path in available_tables.items()
     }
 
