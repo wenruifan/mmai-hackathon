@@ -1,7 +1,7 @@
 # MultimodalAI'25 Hackathon Base Source Code
 
 [![tests](https://github.com/pykale/mmai-hackathon/workflows/test/badge.svg)](https://github.com/pykale/mmai-hackathon/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/pykale/mmai-hackathon/branch/main/graph/badge.svg?token=jmIYPbA2le)](https://codecov.io/gh/pykale/mmai-hackathon)
+[![codecov](https://codecov.io/gh/pykale/mmai-hackathon/branch/main/graph/badge.svg)](https://codecov.io/gh/pykale/mmai-hackathon)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/pykale/mmai-hackathon/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org)
 
@@ -30,26 +30,26 @@ You can set up your development environment using one of the following methods: 
 
 1. **Clone the repository:**
 
-```bash
-git clone https://github.com/pykale/mmai-hackathon.git
-cd mmai-hackathon
-```
+   ```bash
+   git clone https://github.com/pykale/mmai-hackathon.git
+   cd mmai-hackathon
+   ```
 
 2. **Set up a virtual environment (recommended):**
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
 
 3. **Install dependencies:**
 
-```bash
-pip install --upgrade pip
-# Install pykale with all optional dependencies (full extras) from git first
-pip install "git+https://github.com/pykale/pykale@main[full]"
-pip install -e .
-```
+   ```bash
+   pip install --upgrade pip
+   # Install pykale with all optional dependencies (full extras) from git first
+   pip install "git+https://github.com/pykale/pykale@main[full]"
+   pip install -e .
+   ```
 
 #### Installing torch-geometric (pyg) and its extensions
 
