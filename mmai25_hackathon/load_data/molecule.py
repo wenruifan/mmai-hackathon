@@ -27,6 +27,8 @@ from torch_geometric.utils.smiles import from_smiles
 
 from .tabular import read_tabular
 
+__all__ = ["fetch_smiles_from_dataframe", "smiles_to_graph"]
+
 
 @validate_params(
     {"df": [pd.DataFrame, str], "smiles_col": [str], "index_col": [None, str]}, prefer_skip_nested_validation=True

@@ -26,6 +26,8 @@ from sklearn.utils._param_validation import Interval, validate_params
 
 from .tabular import read_tabular
 
+__all__ = ["fetch_protein_sequences_from_dataframe", "protein_sequence_to_integer_encoding"]
+
 # Generate character set for protein sequences between A-Z (except J)
 CHARPROTSET = [chr(i) for i in range(ord("A"), ord("Z") + 1) if chr(i) != "J"]
 # Zero is used for padding or unknown characters hence increment from one.

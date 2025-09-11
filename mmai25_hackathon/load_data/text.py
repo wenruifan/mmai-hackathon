@@ -28,6 +28,8 @@ from sklearn.utils._param_validation import StrOptions, validate_params
 
 from .tabular import merge_multiple_dataframes, read_tabular
 
+__all__ = ["load_mimic_iv_notes", "extract_text_from_note"]
+
 REQUIRED_ID_COLS = ["note_id", "subject_id"]
 
 

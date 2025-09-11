@@ -30,6 +30,8 @@ from sklearn.utils._param_validation import StrOptions, validate_params
 
 from .tabular import merge_multiple_dataframes, read_tabular
 
+__all__ = ["load_mimic_iv_ehr"]
+
 MIMIC_IV_EHR_AVAILABLE_TABLES = {
     "hosp": (
         "admissions",

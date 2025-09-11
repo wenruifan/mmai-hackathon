@@ -25,6 +25,8 @@ from sklearn.utils._param_validation import validate_params
 
 from .tabular import read_tabular
 
+__all__ = ["fetch_supervised_labels_from_dataframe", "one_hot_encode_labels"]
+
 
 @validate_params(
     {"df": [pd.DataFrame, str], "label_col": [str, "array-like"], "index_col": [None, str]},

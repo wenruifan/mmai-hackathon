@@ -18,6 +18,7 @@ Preview CLI:
 Prints a preview of the record list (including `hea_path` and `dat_path`), then loads one example record
 to report the array shape and selected metadata (sampling frequency and number of leads).
 """
+
 import logging
 import os
 from pathlib import Path
@@ -29,6 +30,8 @@ import wfdb
 from sklearn.utils._param_validation import validate_params
 
 from .tabular import read_tabular
+
+__all__ = ["load_mimic_iv_ecg_record_list", "load_ecg_record"]
 
 
 @validate_params({"ecg_path": [str, Path], "filter_rows": [None, dict]}, prefer_skip_nested_validation=True)

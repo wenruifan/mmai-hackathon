@@ -24,6 +24,8 @@ from typing import Dict, List, Literal, Optional, Sequence, Tuple, Union
 import pandas as pd
 from sklearn.utils._param_validation import StrOptions, validate_params
 
+__all__ = ["read_tabular", "merge_multiple_dataframes"]
+
 
 @validate_params(
     {

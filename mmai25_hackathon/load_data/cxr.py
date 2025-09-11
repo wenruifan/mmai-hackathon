@@ -29,6 +29,8 @@ from sklearn.utils._param_validation import validate_params
 
 from .tabular import read_tabular
 
+__all__ = ["load_mimic_cxr_metadata", "load_chest_xray_image"]
+
 METADATA_PATTERNS = ("*metadata*.csv", "*mimic-cxr*-metadata*.csv", "mimic-cxr-2.0.0-metadata.csv")
 DICOM_ID_COLUMN_CANDIDATES = ("dicom_id", "dicom", "image_id")
 

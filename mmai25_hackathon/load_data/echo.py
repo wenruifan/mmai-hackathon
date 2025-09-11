@@ -29,6 +29,8 @@ from sklearn.utils._param_validation import validate_params
 
 from .tabular import read_tabular
 
+__all__ = ["load_mimic_iv_echo_record_list", "load_echo_dicom"]
+
 
 @validate_params({"echo_path": [str, Path], "filter_rows": [None, dict]}, prefer_skip_nested_validation=True)
 def load_mimic_iv_echo_record_list(
