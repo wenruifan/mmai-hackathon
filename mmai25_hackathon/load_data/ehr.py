@@ -47,7 +47,7 @@ MIMIC_IV_EHR_AVAILABLE_TABLES = {
 
 @validate_params(
     {
-        "ehr_path": [Path, str],
+        "ehr_path": [str, Path],
         "module": [StrOptions({"hosp", "icu", "both"})],
         "tables": [None, "array-like"],
         "index_cols": [None, list, str],
@@ -74,7 +74,7 @@ def fetch_mimic_iv_ehr(
     Query, load, and aggregate MIMIC-IV EHR data from specified module(s) and tables.
 
     Args:
-        ehr_path (str): Path to the root folder containing `hosp` and/or `icu` subfolders.
+        ehr_path (Union[str, Path]): Path to the root folder containing `hosp` and/or `icu` subfolders.
         module (Literal['hosp', 'icu', 'both']): Module(s) to load data from. The 'hosp' module contains hospital-wide
             data, while the 'icu' module contains intensive care unit-specific data. Default: 'hosp'.
         tables (Optional[Sequence[str]]): Specific sequences of tables to load. If None, all available tables in the selected
