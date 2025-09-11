@@ -199,7 +199,7 @@ def merge_multiple_dataframes(
 
     # Bucket frames by the exact subset of keys they actually contain
     logger.info("Merging DataFrames by overlapping keys: %s", index_cols)
-    df_by_subset = {}
+    df_by_subset = {}  # type: ignore[var-annotated]
     for df, label in zip(dfs, labels):
         subset = tuple(col for col in index_cols if col in df.columns)
         if subset:
