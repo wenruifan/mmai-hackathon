@@ -1,15 +1,30 @@
 """
-Protein sequence utilities for reading and integer encoding.
+Protein sequence loading and integer-encoding utilities.
 
 Functions:
-    - fetch_protein_sequences_from_dataframe: Extract protein sequences from DataFrame or CSV.
-    - protein_sequence_to_integer_encoding: Convert a sequence to integer-encoded array.
+fetch_protein_sequences_from_dataframe(df, prot_seq_col, index_col=None)
+    Fetches protein sequences from a DataFrame or CSV (uses `read_tabular` if a path is given). Optionally sets an index
+    and returns a one-column DataFrame named "protein_sequence" (index reset if `index_col` is None).
+
+protein_sequence_to_integer_encoding(sequence, max_length=1200)
+    Converts an amino-acid sequence to a fixed-length integer array using an A–Z alphabet (excluding 'J'); 0 is reserved
+    for padding/unknown. Returns a NumPy array of shape `(max_length,)`.
+
+Preview CLI:
+`python -m mmai25_hackathon.load_data.protein /path/to/proteins.csv`
+Reads the CSV, prints a small preview of the protein sequences, and encodes the first few entries, printing each array’s
+shape and the count of unknown (0) tokens.
 """
 
+import logging
+from numbers import Integral
 from typing import Union
 
 import numpy as np
 import pandas as pd
+from sklearn.utils._param_validation import Interval, validate_params
+
+from .tabular import read_tabular
 
 # Generate character set for protein sequences between A-Z (except J)
 CHARPROTSET = [chr(i) for i in range(ord("A"), ord("Z") + 1) if chr(i) != "J"]
@@ -17,6 +32,9 @@ CHARPROTSET = [chr(i) for i in range(ord("A"), ord("Z") + 1) if chr(i) != "J"]
 CHARPROTSET = {letter: idx for idx, letter in enumerate(CHARPROTSET, 1)}
 
 
+@validate_params(
+    {"df": [pd.DataFrame, str], "prot_seq_col": [str], "index_col": [None, str]}, prefer_skip_nested_validation=True
+)
 def fetch_protein_sequences_from_dataframe(
     df: Union[pd.DataFrame, str], prot_seq_col: str, index_col: str = None
 ) -> pd.DataFrame:
@@ -47,7 +65,7 @@ def fetch_protein_sequences_from_dataframe(
         3      TTPSYVAFTDTER
     """
     if isinstance(df, str):
-        df = pd.read_csv(df)
+        df = read_tabular(df, subset_cols=prot_seq_col, index_cols=index_col)
 
     if prot_seq_col not in df.columns:
         raise ValueError(f"Column '{prot_seq_col}' not found in DataFrame.")
@@ -55,9 +73,14 @@ def fetch_protein_sequences_from_dataframe(
     if index_col is not None:
         df = df.set_index(index_col)
 
-    return df[prot_seq_col].to_frame("protein_sequence")
+    logger = logging.getLogger(f"{__name__}.fetch_protein_sequences_from_dataframe")
+    logger.info("Fetched %d protein sequences from column '%s'.", len(df), prot_seq_col)
+    return df[prot_seq_col].to_frame("protein_sequence").reset_index(drop=index_col is None)
 
 
+@validate_params(
+    {"sequence": [str], "max_length": [Interval(Integral, 1, None, closed="left")]}, prefer_skip_nested_validation=True
+)
 def protein_sequence_to_integer_encoding(sequence: str, max_length: int = 1200) -> np.ndarray:
     """
     Converts a protein sequence into an integer-encoded representation.
@@ -83,6 +106,11 @@ def protein_sequence_to_integer_encoding(sequence: str, max_length: int = 1200) 
     for i, char in enumerate(sequence[:max_length]):
         # If character is not in CHARPROTSET, it will be skipped and assumed to be unknown
         encoded_sequence[i] = CHARPROTSET.get(char, 0)
+
+    logger = logging.getLogger(f"{__name__}.protein_sequence_to_integer_encoding")
+    logger.info("Encoded sequence: %s", encoded_sequence)
+    logger.info("Original sequence length: %d, Encoded length: %d", len(sequence), len(encoded_sequence))
+    logger.info("Unknown characters (encoded as 0) count: %d", np.sum(encoded_sequence == 0))
     return encoded_sequence
 
 
@@ -90,13 +118,12 @@ if __name__ == "__main__":
     import argparse
 
     # Example script: python -m mmai25_hackathon.load_data.protein dataset.csv
-
     parser = argparse.ArgumentParser(description="Process protein sequences.")
-    parser.add_argument("csv_path", type=str, help="Path to the CSV file containing protein sequences.")
+    parser.add_argument("data_path", type=str, help="Path to the CSV file containing protein sequences.")
     args = parser.parse_args()
 
     # Take from Peizhen's csv file for DrugBAN training
-    df = fetch_protein_sequences_from_dataframe(args.csv_path, prot_seq_col="Protein")
+    df = fetch_protein_sequences_from_dataframe(args.data_path, prot_seq_col="Protein")
     for i, prot_seq in enumerate(df["protein_sequence"].head(5), 1):
         integer_encoding = protein_sequence_to_integer_encoding(prot_seq)
         print(i, integer_encoding)
