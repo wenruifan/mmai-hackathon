@@ -1,3 +1,24 @@
+"""
+Chest x-ray (CXR) loading utilities for MIMIC-CXR.
+
+Functions:
+load_mimic_cxr_metadata(cxr_path, filter_rows=None)
+    Scans the dataset directory for a metadata CSV, loads it, optionally filters rows,
+    and adds a `cxr_path` column pointing to each JPEG file (by DICOM ID). Returns a
+    `pd.DataFrame`. Raises `FileNotFoundError` if the dataset/CSV is missing and
+    `KeyError` if no suitable DICOM ID column is found.
+
+load_chest_xray_image(path, to_gray=True)
+    Opens a chest x-ray image with PIL. Converts to grayscale ("L") when `to_gray=True`,
+    otherwise returns RGB. Returns a `PIL.Image.Image`. Raises `FileNotFoundError` if the
+    image path does not exist.
+
+Preview CLI:
+`python -m mmai25_hackathon.load_data.cxr /path/to/mimic-cxr-jpg-...`
+Loads metadata, prints a preview, and opens a sample image.
+"""
+
+import logging
 import os
 from pathlib import Path
 from typing import Dict, Optional, Sequence, Union
@@ -59,8 +80,10 @@ def load_mimic_cxr_metadata(
                 metadata_path = subpath
 
     if metadata_path is None:
-        raise FileNotFoundError(f"Could not find metadata CSV under {cxr_path} using patterns: {METADATA_PATTERNS}")
+        raise FileNotFoundError(f"Metadata could not be found in {cxr_path} given patterns: {METADATA_PATTERNS}")
 
+    logger = logging.getLogger(f"{__name__}.load_mimic_cxr_metadata")
+    logger.info("Loading CXR metadata from: %s", metadata_path)
     df_metadata = read_tabular(metadata_path, filter_rows=filter_rows)
     df_metadata.columns = df_metadata.columns.str.lower()
     dicom_id_col = df_metadata.columns.intersection(DICOM_ID_COLUMN_CANDIDATES)
@@ -68,6 +91,10 @@ def load_mimic_cxr_metadata(
     if len(dicom_id_col) == 0:
         raise KeyError(f"No suitable DICOM ID column found. Expected one of: {DICOM_ID_COLUMN_CANDIDATES}")
     dicom_id_col = dicom_id_col[0]  # take the first match
+
+    logger.info("Using DICOM ID column: %s", dicom_id_col)
+    logger.info("Found %d metadata entries in: %s", len(df_metadata), metadata_path)
+    logger.info("Mapping DICOM IDs to image files under: %s", cxr_path / "files")
 
     # image path column
     df_metadata["cxr_path"] = (
@@ -77,7 +104,10 @@ def load_mimic_cxr_metadata(
         .map(lambda x: str(next((cxr_path / "files").rglob(f"{x}.jpg"), "")))
     )
 
-    return df_metadata[df_metadata["cxr_path"] != ""].copy()
+    df_metadata = df_metadata[df_metadata["cxr_path"] != ""].copy()
+    logger.info("Mapped %d metadata entries to existing image files.", len(df_metadata))
+
+    return df_metadata
 
 
 @validate_params({"path": [Path, str], "to_gray": ["boolean"]}, prefer_skip_nested_validation=True)
@@ -105,30 +135,33 @@ def load_chest_xray_image(path: Union[str, Path], to_gray: bool = True) -> Image
     if not os.path.exists(path):
         raise FileNotFoundError(f"Image not found: {path}")
 
+    logger = logging.getLogger(f"{__name__}.load_chest_xray_image")
+    logger.info("Loading image: %s", path)
+
     img = Image.open(path)
-    return img.convert("L") if to_gray else img.convert("RGB")
+    img = img.convert("L") if to_gray else img.convert("RGB")
+    logger.info("Loaded image size: %s, mode: %s", img.size, img.mode)
+
+    return img
 
 
 if __name__ == "__main__":
     import argparse
 
     # Example script:
-    # python -m mmai25_hackathon.load_data.cxr \
-    #   --data_path mimic-iv/mimic-cxr-jpg-chest-radiographs-with-structured-labels-2.1.0
+    # python -m mmai25_hackathon.load_data.cxr mimic-iv/mimic-cxr-jpg-chest-radiographs-with-structured-labels-2.1.0
     parser = argparse.ArgumentParser(description="Load MIMIC CXR metadata and images.")
-    parser.add_argument(
-        "--data_path",
-        type=str,
-        required=True,
-        help="Path to the MIMIC CXR dataset directory.",
-    )
+    parser.add_argument("data_path", type=str, help="Path to the MIMIC CXR dataset directory.")
     args = parser.parse_args()
 
+    print("Loading MIMIC CXR metadata...")
     metadata = load_mimic_cxr_metadata(args.data_path)
     print(metadata.head()[["subject_id", "cxr_path"]])
 
     # Example of loading an image
     if not metadata.empty:
+        print()
+        print(f"Loading first chest x-ray image from: {metadata.iloc[0]['cxr_path']}")
         example_path = metadata.iloc[0]["cxr_path"]
         image = load_chest_xray_image(example_path)
         image.show()
