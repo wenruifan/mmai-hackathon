@@ -229,11 +229,6 @@ def merge_multiple_dataframes(
 
 
 if __name__ == "__main__":
-    # separate function for loading tabular data
-    # 1. read_tabular (only single csv)
-    # 2. merge multiple dataframes (optimize the query greedily)
-    # 3. concat multiple dataframes
-
     import argparse
 
     # Example script (assuming folder mimic-iv-3.1 is in the current directory)
