@@ -21,7 +21,7 @@ retrieves the note matching the provided `note_id`, printing its full text and s
 
 import logging
 from pathlib import Path
-from typing import List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import pandas as pd
 from sklearn.utils._param_validation import StrOptions, validate_params
@@ -103,7 +103,7 @@ def load_mimic_iv_notes(
 
 
 @validate_params({"note": [pd.Series], "include_metadata": ["boolean"]}, prefer_skip_nested_validation=True)
-def extract_text_from_note(note: pd.Series, include_metadata: bool = False) -> str:
+def extract_text_from_note(note: pd.Series, include_metadata: bool = False) -> Union[str, Tuple[str, Dict[str, Any]]]:
     """
     Extracts the text from a note Series, optionally returning metadata.
 
@@ -112,7 +112,7 @@ def extract_text_from_note(note: pd.Series, include_metadata: bool = False) -> s
         include_metadata (bool): If True, return a tuple of (text, metadata_dict). Default is False.
 
     Returns:
-        str or (str, dict): The note text; optionally with the note's metadata as a dictionary.
+        Union[str, Tuple[str, Dict[str, Any]]]: The note text; optionally with the note's metadata as a dictionary.
 
     Raises:
         KeyError: If the 'text' column is not present in the note Series.
