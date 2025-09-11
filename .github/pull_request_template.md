@@ -6,15 +6,15 @@ Provide a short summary of the changes in this PR.
 ---
 
 ### Dataset & DataLoader Design
-- Describe the **design decisions** for your Dataset and DataLoader implementation.  
-- Explain how your design addresses **scalability, flexibility, and modularity**.  
-- Highlight any specific challenges and how you resolved them.  
+- Describe the **design decisions** for your Dataset and DataLoader implementation.
+- Explain how your design addresses **scalability, flexibility, and modularity**.
+- Highlight any specific challenges and how you resolved them.
 
 ---
 
 ### Handling Relationships Between Samples
-- Explain how your DataLoader takes **relationships across samples** into account. For example: linking samples from different modalities that come from the **same subject**.  
-- Describe how missing modalities or unaligned samples are handled.  
+- Explain how your DataLoader takes **relationships across samples** into account. For example: linking samples from different modalities that come from the **same subject**.
+- Describe how missing modalities or unaligned samples are handled.
 
 ---
 
