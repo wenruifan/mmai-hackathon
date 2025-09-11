@@ -1,3 +1,27 @@
+"""
+MIMIC-IV Electronic Health Record (EHR) loading and merging utilities.
+
+Functions:
+load_mimic_iv_ehr(
+    ehr_path, module='hosp'|'icu'|'both', tables=None, index_cols=None,
+    subset_cols=None, filter_rows=None, merge=True, join='inner', raise_errors=True
+)
+    Discovers and loads CSV tables from the selected MIMIC-IV module(s). Optionally selects
+    per-table columns, filters rows, and merges tables by overlapping key columns (via
+    `merge_multiple_dataframes`). Returns a dict of DataFrames when `merge=False` or a single
+    merged DataFrame when `merge=True`. Raises `FileNotFoundError` if the dataset/subfolders are
+    missing and `ValueError` for invalid table names or disjoint merge components.
+
+Notes:
+- Column selection and row filtering are delegated to `read_tabular`.
+- `index_cols` are used as merge keys only (the DataFrame index is not set by this helper).
+
+Preview CLI:
+`python -m mmai25_hackathon.load_data.ehr /path/to/mimic-iv-3.1`
+Loads a small example (e.g., ICU stays + admissions), merges on `subject_id, hadm_id`, and prints a preview.
+"""
+
+import logging
 from pathlib import Path
 from typing import Dict, List, Literal, Optional, Sequence, Union
 
@@ -7,7 +31,7 @@ from sklearn.utils._param_validation import StrOptions, validate_params
 from .tabular import merge_multiple_dataframes, read_tabular
 
 MIMIC_IV_EHR_AVAILABLE_TABLES = {
-    "hosp": [
+    "hosp": (
         "admissions",
         "diagnoses_icd",
         "drgcodes",
@@ -30,8 +54,8 @@ MIMIC_IV_EHR_AVAILABLE_TABLES = {
         "d_icd_diagnoses",
         "d_icd_procedures",
         "d_labitems",
-    ],
-    "icu": [
+    ),
+    "icu": (
         "caregiver",
         "chartevents",
         "d_items",
@@ -41,7 +65,7 @@ MIMIC_IV_EHR_AVAILABLE_TABLES = {
         "inputevents",
         "outputevents",
         "procedureevents",
-    ],
+    ),
 }
 
 
@@ -59,7 +83,7 @@ MIMIC_IV_EHR_AVAILABLE_TABLES = {
     },
     prefer_skip_nested_validation=True,
 )
-def fetch_mimic_iv_ehr(
+def load_mimic_iv_ehr(
     ehr_path: Union[str, Path],
     module: Literal["hosp", "icu", "both"] = "hosp",
     tables: Optional[Sequence[str]] = None,
@@ -105,7 +129,7 @@ def fetch_mimic_iv_ehr(
 
     Examples:
         >>> # Load specific tables from both modules and merge them on 'subject_id' and 'hadm_id'
-        >>> df = fetch_mimic_iv_ehr(
+        >>> df = load_mimic_iv_ehr(
         ...     ehr_path="path/to/mimic-iv-3.1",
         ...     module="both",
         ...     tables=["icustays", "admissions"],
@@ -154,6 +178,10 @@ def fetch_mimic_iv_ehr(
             if table in MIMIC_IV_EHR_AVAILABLE_TABLES[mod] and path.exists():
                 available_tables[table] = path
 
+    logger = logging.getLogger(f"{__name__}.load_mimic_iv_ehr")
+    logger.info("Selected modules: %s", selected_modules)
+    logger.info("Available tables to load: %s", list(available_tables.keys()))
+
     # Validate we have at least one table to load
     if len(available_tables) == 0:
         raise ValueError(f"No available tables found for modules: {selected_modules}")
@@ -165,6 +193,7 @@ def fetch_mimic_iv_ehr(
             raise ValueError(f"The following requested tables are not available: {missing_tables}")
 
     # Load tables
+    logger.info("Loading tables from: %s", ehr_path)
     dfs = {
         table: read_tabular(path, subset_cols.get(table, None), index_cols, filter_rows, raise_errors=raise_errors)
         for table, path in available_tables.items()
@@ -173,6 +202,7 @@ def fetch_mimic_iv_ehr(
     if not merge:
         return dfs
 
+    logging.info("Merging tables on keys: %s using '%s' join", index_cols, join)
     aggregated_dfs = merge_multiple_dataframes(
         list(dfs.values()), dfs_name=list(dfs.keys()), index_cols=index_cols, join=join
     )
@@ -188,6 +218,7 @@ def fetch_mimic_iv_ehr(
         )
 
     _, merged_df = aggregated_dfs[0]
+    logger.info("Merged DataFrame shape: %s", merged_df.shape)
 
     return merged_df
 
@@ -197,17 +228,13 @@ if __name__ == "__main__":
 
     # Example script given the relative path to folder mimic-iv
     # containing mimic-iv-3.1 that has hosp and icu subfolders:
-    # python -m mmai25_hackathon.load_data.ehr --data_path mimic-iv/mimic-iv-3.1
+    # python -m mmai25_hackathon.load_data.ehr mimic-iv/mimic-iv-3.1
     parser = argparse.ArgumentParser(description="Fetch MIMIC-IV EHR data example.")
-    parser.add_argument(
-        "--data_path",
-        type=str,
-        required=True,
-        help="Path to the MIMIC-IV EHR root directory (mimic-iv-3.1).",
-    )
+    parser.add_argument("data_path", type=str, help="Path to the MIMIC-IV EHR root directory (mimic-iv-3.1).")
     args = parser.parse_args()
 
-    dfs_new = fetch_mimic_iv_ehr(
+    print("Loading MIMIC-IV EHR data example...")
+    dfs_new = load_mimic_iv_ehr(
         ehr_path=args.data_path,
         module="both",
         tables=["icustays", "admissions"],
