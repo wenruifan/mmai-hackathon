@@ -26,7 +26,7 @@ import pytest
 # Ensure wfdb is available; otherwise, skip this module's tests at collection time
 pytest.importorskip("wfdb")
 
-from mmai25_hackathon.load_data.ecg import load_ecg_record, load_mimic_iv_ecg_record_list
+from mmai25_hackathon.load_data.ecg import load_ecg_record, load_mimic_iv_ecg_record_list  # noqa: E402
 
 # Fixed dataset path (if available locally or fetched during CI)
 ECG_ROOT = Path.cwd() / "MMAI25Hackathon" / "mimic-iv" / "mimic-iv-ecg-diagnostic-electrocardiogram-matched-subset-1.0"

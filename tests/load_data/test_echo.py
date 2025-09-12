@@ -27,7 +27,7 @@ import pytest
 # Ensure pydicom is available; otherwise, skip this module's tests at collection time
 pytest.importorskip("pydicom")
 
-from mmai25_hackathon.load_data.echo import load_echo_dicom, load_mimic_iv_echo_record_list
+from mmai25_hackathon.load_data.echo import load_echo_dicom, load_mimic_iv_echo_record_list  # noqa: E402
 
 ECHO_ROOT = Path.cwd() / "MMAI25Hackathon" / "mimic-iv" / "mimic-iv-echo-0.1.physionet.org"
 

@@ -20,9 +20,9 @@ import pytest
 
 # Ensure torch_geometric is available; otherwise, skip this module's tests
 pytest.importorskip("torch_geometric")
-from torch_geometric.data import Data
+from torch_geometric.data import Data  # noqa: E402
 
-from mmai25_hackathon.load_data.molecule import fetch_smiles_from_dataframe, smiles_to_graph
+from mmai25_hackathon.load_data.molecule import fetch_smiles_from_dataframe, smiles_to_graph  # noqa: E402
 
 # Optional real dataset path for integration-style checks
 MOLECULE_DATASET_CSV = Path.cwd() / "MMAI25Hackathon" / "molecule-protein-interaction" / "dataset.csv"
