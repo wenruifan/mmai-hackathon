@@ -47,8 +47,9 @@ pip install -e .[dev]
 # pip install -e .
 ```
 
-If you use features that depend on PyG (graph loaders, SMILES), install torch‑geometric wheels that match your Torch/CUDA.
-The snippet below detects your installed Torch and CUDA, constructs the correct find‑links URL, and installs the wheels:
+By default, the dependencies declared in `pyproject.toml` are sufficient (they include `torch` and `torch-geometric`).
+
+Only if you enable a data‑loading extension that requires extra PyG ops (e.g., `torch-scatter`, `torch-sparse`, `torch-cluster`, `torch-spline-conv`), you do need to install those extras. The snippet below detects your Torch/CUDA and prints the correct wheel index to use for these optional packages:
 
 ```bash
 # Inspect Torch / CUDA (optional)
@@ -59,7 +60,7 @@ print('CUDA version:', torch.version.cuda)
 print('CUDA available:', torch.cuda.is_available())
 PYINFO
 
-# Install PyG wheels matching your Torch/CUDA
+# Compute the PyG wheel index matching your Torch/CUDA
 PYG_INDEX=$(python - <<'PYG'
 import torch
 torch_ver = torch.__version__.split('+')[0]
@@ -72,7 +73,12 @@ print(f"https://data.pyg.org/whl/torch-{torch_ver}+{cu_tag}.html")
 PYG
 )
 echo "Using PyG wheel index: $PYG_INDEX"
-pip install torch-geometric torch-scatter torch-sparse torch-cluster torch-spline-conv -f "$PYG_INDEX"
+
+# Install only the extras you need, for example:
+# pip install torch-scatter -f "$PYG_INDEX"
+# pip install torch-sparse  -f "$PYG_INDEX"
+# pip install torch-cluster -f "$PYG_INDEX"
+# pip install torch-spline-conv -f "$PYG_INDEX"
 ```
 
 More details: https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html
