@@ -70,8 +70,8 @@ def load_mimic_iv_notes(
             Default: False.
         subset_cols (Optional[List[str]]): Columns to load from the main notes CSV in addition to the
             required ID columns. Defaults to a small set including ``'text'``.
-        filter_rows (dict, optional): A dictionary to filter rows in the DataFrame.
-            Keys are column names and values are the values to filter by. Default: None.
+        filter_rows (Optional[Dict[str, Union[Sequence, pd.Index]]]): Row filters as
+            {column: allowed_values}. Applied where columns exist. Default: None.
 
     Returns:
         pd.DataFrame: Notes for the requested subset. When ``text`` exists, values are trimmed and

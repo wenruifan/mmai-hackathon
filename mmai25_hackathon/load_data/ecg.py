@@ -51,8 +51,8 @@ def load_mimic_iv_ecg_record_list(
 
     Args:
         ecg_path (Union[str, Path]): The root directory of the MIMIC-IV-ECG dataset.
-        filter_rows (dict, optional): A dictionary to filter rows in the metadata DataFrame.
-            Keys are column names and values are the values to filter by. Default: None.
+        filter_rows (Optional[Dict[str, Union[Sequence, pd.Index]]]): Row filters as
+            {column: allowed_values}. Applied where columns exist. Default: None.
 
     Returns:
         pd.DataFrame: A DataFrame containing the contents of `record_list.csv` with additional columns:

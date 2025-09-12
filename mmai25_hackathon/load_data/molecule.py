@@ -53,8 +53,8 @@ def fetch_smiles_from_dataframe(
         df (Union[pd.DataFrame, str]): DataFrame or path to CSV file.
         smiles_col (str): Column name for SMILES representations.
         index_col (str, optional): Column to set as index. Default: None.
-        filter_rows (dict, optional): A dictionary to filter rows in the DataFrame.
-            Keys are column names and values are the values to filter by. Default: None.
+        filter_rows (Optional[Dict[str, Union[Sequence, pd.Index]]]): Row filters as
+            {column: allowed_values}. Applied where columns exist. Default: None.
 
     Returns:
         pd.DataFrame: A single column DataFrame containing the SMILES strings with name `"smiles"`.

@@ -49,8 +49,8 @@ def load_mimic_iv_echo_record_list(
 
     Args:
         echo_path (str): The root directory of the MIMIC-IV-ECHO dataset.
-        filter_rows (dict, optional): A dictionary to filter rows in the DataFrame.
-            Keys are column names and values are the values to filter by. Default: None.
+        filter_rows (Optional[Dict[str, Union[Sequence, pd.Index]]]): Row filters as
+            {column: allowed_values}. Applied where columns exist. Default: None.
 
     Returns:
         pd.DataFrame: A DataFrame containing the contents of `echo-record-list.csv`.

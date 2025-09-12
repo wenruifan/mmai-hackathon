@@ -51,8 +51,8 @@ def load_mimic_cxr_metadata(
 
     Args:
         cxr_path (Union[Path, str]): The root directory of the MIMIC CXR dataset.
-        filter_rows (dict, optional): A dictionary to filter rows in the metadata DataFrame.
-            Keys are column names and values are the values to filter by. Default: None.
+        filter_rows (Optional[Dict[str, Union[Sequence, pd.Index]]]): Row filters as
+            {column: allowed_values}. Applied where columns exist. Default: None.
 
     Returns:
         pd.DataFrame: A DataFrame containing the metadata with an additional column `cxr_path`
