@@ -73,7 +73,7 @@ def fetch_supervised_labels_from_dataframe(
     if label_col not in df.columns:
         raise ValueError(f"Column '{label_col}' not found in DataFrame.")
 
-    if isinstance(label_col, Sequence) and len(label_col) > 1:
+    if isinstance(label_col, (list, tuple)) and len(label_col) > 1:
         return df
 
     if index_col is not None:
