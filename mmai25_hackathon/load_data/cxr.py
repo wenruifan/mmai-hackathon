@@ -85,8 +85,10 @@ def load_mimic_cxr_metadata(
     metadata_path = None
     for pat in METADATA_PATTERNS:
         for subpath in cxr_path.rglob(pat):
+            # Stop if multiple found, take the first
             if metadata_path is None:
                 metadata_path = subpath
+                break
 
     if metadata_path is None:
         raise FileNotFoundError(f"Metadata could not be found in {cxr_path} given patterns: {METADATA_PATTERNS}")
