@@ -48,6 +48,7 @@ jobs:
 
       - name: Download datasets from Dropbox (optional)
         if: ${{ env.DROPBOX_REFRESH_TOKEN != '' }}
+        continue-on-error: true
         run: |
           python -m tests.dropbox_download \
             "/MMAI25Hackathon" \
