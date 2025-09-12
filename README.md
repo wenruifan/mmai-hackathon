@@ -95,6 +95,10 @@ pre-commit install
 pytest
 ```
 
+## Example data
+
+Example data can be downloaded from [this Dropbox folder](https://www.dropbox.com/scl/fo/8xjlsri0zcov20v8xsyxa/AOMpquFinnQnp287lT5hxJM?rlkey=1h1sm3wxd4s1oeygludri6hr6&st=cg0qdhic&dl=0). No Dropbox account is required to access the files.
+
 ## Notes
 
 - The project restricts Python versions to 3.10–3.12 as specified in `.python-version` and `pyproject.toml`.
