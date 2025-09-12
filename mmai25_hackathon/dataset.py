@@ -93,7 +93,7 @@ class BaseDataset(Dataset):
             Union[BaseDataset, Dict[str, BaseDataset]]: The prepared dataset or a dictionary
             of datasets for different splits (e.g., train, val, test).
         """
-        pass
+        raise NotImplementedError("Subclasses may implement prepare_data class method if needed.")
 
 
 class BaseDataLoader(DataLoader):
