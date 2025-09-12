@@ -17,7 +17,7 @@ Reads the CSV (expects a label column named `Y` in this demo), prints the first 
 one-hot–encoded labels.
 """
 
-from typing import Sequence, Union
+from typing import Dict, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -29,19 +29,26 @@ __all__ = ["fetch_supervised_labels_from_dataframe", "one_hot_encode_labels"]
 
 
 @validate_params(
-    {"df": [pd.DataFrame, str], "label_col": [str, "array-like"], "index_col": [None, str]},
+    {
+        "df": [pd.DataFrame, str],
+        "label_col": [str, "array-like"],
+        "index_col": [None, str],
+        "filter_rows": [None, dict],
+    },
     prefer_skip_nested_validation=True,
 )
 def fetch_supervised_labels_from_dataframe(
     df: Union[pd.DataFrame, str],
     label_col: Union[str, Sequence[str]],
     index_col: str = None,
+    filter_rows: Optional[Dict[str, Union[Sequence, pd.Index]]] = None,
 ) -> pd.DataFrame:
     """
     Fetches supervision labels from a DataFrame or CSV file. Will read the CSV if a path is provided.
 
     High-level steps:
-    - If `df` is a path, load via `read_tabular` selecting `label_col` and optional `index_col`.
+    - If `df` is a path, load via `read_tabular` selecting `label_col` and optional `index_col`; apply `filter_rows`.
+    - If `df` is a DataFrame and `filter_rows` is provided, apply row filters where columns exist.
     - Validate that the requested label column(s) are present.
     - If a single column, optionally set index and return DataFrame named `"label"`.
     - If multiple columns, return the DataFrame as-is.
@@ -50,6 +57,8 @@ def fetch_supervised_labels_from_dataframe(
         df (Union[pd.DataFrame, str]): DataFrame or path to CSV file.
         label_col (Union[str, Sequence[str]]): Column name or sequence of column names for labels.
         index_col (str, optional): Column to set as index. Default: None.
+        filter_rows (dict, optional): A dictionary to filter rows in the DataFrame.
+            Keys are column names and values are the values to filter by. Default: None.
 
     Returns:
         pd.DataFrame: A DataFrame containing the labels with name `"label"` if a single column is provided,
@@ -68,7 +77,12 @@ def fetch_supervised_labels_from_dataframe(
         3      0
     """
     if isinstance(df, str):
-        df = read_tabular(df, subset_cols=label_col, index_cols=index_col)
+        df = read_tabular(df, subset_cols=label_col, index_cols=index_col, filter_rows=filter_rows)
+    else:
+        # Apply filter_rows to provided DataFrame for consistency
+        for col, valid_vals in (filter_rows or {}).items():
+            if col in df.columns:
+                df = df[df[col].isin(valid_vals)]
 
     if label_col not in df.columns:
         raise ValueError(f"Column '{label_col}' not found in DataFrame.")

@@ -18,7 +18,7 @@ graph’s summary (e.g., number of nodes/edges and feature sizes).
 """
 
 import logging
-from typing import Union
+from typing import Dict, Optional, Sequence, Union
 
 import pandas as pd
 from sklearn.utils._param_validation import validate_params
@@ -31,14 +31,21 @@ __all__ = ["fetch_smiles_from_dataframe", "smiles_to_graph"]
 
 
 @validate_params(
-    {"df": [pd.DataFrame, str], "smiles_col": [str], "index_col": [None, str]}, prefer_skip_nested_validation=True
+    {"df": [pd.DataFrame, str], "smiles_col": [str], "index_col": [None, str], "filter_rows": [None, dict]},
+    prefer_skip_nested_validation=True,
 )
-def fetch_smiles_from_dataframe(df: Union[pd.DataFrame, str], smiles_col: str, index_col: str = None) -> pd.DataFrame:
+def fetch_smiles_from_dataframe(
+    df: Union[pd.DataFrame, str],
+    smiles_col: str,
+    index_col: str = None,
+    filter_rows: Optional[Dict[str, Union[Sequence, pd.Index]]] = None,
+) -> pd.DataFrame:
     """
     Fetches SMILES strings from a DataFrame or CSV file. Will read the CSV if a path is provided.
 
     High-level steps:
-    - If `df` is a path, load via `read_tabular` selecting `smiles_col` and optional `index_col`.
+    - If `df` is a path, load via `read_tabular` selecting `smiles_col` and optional `index_col`; apply `filter_rows`.
+    - If `df` is a DataFrame and `filter_rows` is provided, apply row filters where columns exist.
     - Validate `smiles_col` exists; optionally set DataFrame index.
     - Return a one-column DataFrame named `"smiles"` (index preserved if set).
 
@@ -46,6 +53,8 @@ def fetch_smiles_from_dataframe(df: Union[pd.DataFrame, str], smiles_col: str, i
         df (Union[pd.DataFrame, str]): DataFrame or path to CSV file.
         smiles_col (str): Column name for SMILES representations.
         index_col (str, optional): Column to set as index. Default: None.
+        filter_rows (dict, optional): A dictionary to filter rows in the DataFrame.
+            Keys are column names and values are the values to filter by. Default: None.
 
     Returns:
         pd.DataFrame: A single column DataFrame containing the SMILES strings with name `"smiles"`.
@@ -66,7 +75,11 @@ def fetch_smiles_from_dataframe(df: Union[pd.DataFrame, str], smiles_col: str, i
         3   CC(=O)O
     """
     if isinstance(df, str):
-        df = read_tabular(df, subset_cols=smiles_col, index_cols=index_col)
+        df = read_tabular(df, subset_cols=smiles_col, index_cols=index_col, filter_rows=filter_rows)
+    else:
+        for col, valid_vals in (filter_rows or {}).items():
+            if col in df.columns:
+                df = df[df[col].isin(valid_vals)]
 
     if smiles_col not in df.columns:
         raise ValueError(f"Column '{smiles_col}' not found in DataFrame.")

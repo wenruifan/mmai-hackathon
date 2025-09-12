@@ -18,7 +18,7 @@ shape and the count of unknown (0) tokens.
 
 import logging
 from numbers import Integral
-from typing import Union
+from typing import Dict, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -35,16 +35,21 @@ CHARPROTSET = {letter: idx for idx, letter in enumerate(CHARPROTSET, 1)}
 
 
 @validate_params(
-    {"df": [pd.DataFrame, str], "prot_seq_col": [str], "index_col": [None, str]}, prefer_skip_nested_validation=True
+    {"df": [pd.DataFrame, str], "prot_seq_col": [str], "index_col": [None, str], "filter_rows": [None, dict]},
+    prefer_skip_nested_validation=True,
 )
 def fetch_protein_sequences_from_dataframe(
-    df: Union[pd.DataFrame, str], prot_seq_col: str, index_col: str = None
+    df: Union[pd.DataFrame, str],
+    prot_seq_col: str,
+    index_col: str = None,
+    filter_rows: Optional[Dict[str, Union[Sequence, pd.Index]]] = None,
 ) -> pd.DataFrame:
     """
     Fetches protein sequences from a DataFrame or CSV file. Will read the CSV if a path is provided.
 
     High-level steps:
-    - If `df` is a path, load via `read_tabular` selecting `prot_seq_col` and optional `index_col`.
+    - If `df` is a path, load via `read_tabular` selecting `prot_seq_col` and optional `index_col`; apply `filter_rows`.
+    - If `df` is a DataFrame and `filter_rows` is provided, apply row filters where columns exist.
     - Validate `prot_seq_col` exists; optionally set DataFrame index.
     - Return a one-column DataFrame named `"protein_sequence"` (index preserved if set).
 
@@ -52,6 +57,8 @@ def fetch_protein_sequences_from_dataframe(
         df (Union[pd.DataFrame, str]): DataFrame or path to CSV file.
         prot_seq_col (str): Column name for protein sequences.
         index_col (str, optional): Column to set as index. Default: None.
+        filter_rows (dict, optional): A dictionary to filter rows in the DataFrame.
+            Keys are column names and values are the values to filter by. Default: None.
 
     Returns:
         pd.DataFrame: A single column DataFrame containing the protein sequences with name `"protein_sequence"`.
@@ -72,7 +79,11 @@ def fetch_protein_sequences_from_dataframe(
         3      TTPSYVAFTDTER
     """
     if isinstance(df, str):
-        df = read_tabular(df, subset_cols=prot_seq_col, index_cols=index_col)
+        df = read_tabular(df, subset_cols=prot_seq_col, index_cols=index_col, filter_rows=filter_rows)
+    else:
+        for col, valid_vals in (filter_rows or {}).items():
+            if col in df.columns:
+                df = df[df[col].isin(valid_vals)]
 
     if prot_seq_col not in df.columns:
         raise ValueError(f"Column '{prot_seq_col}' not found in DataFrame.")

@@ -77,3 +77,15 @@ def test_fetch_smiles_from_real_dataset(molecule_csv: Path) -> None:
     assert list(out.columns) == ["smiles"], f"Expected single column 'smiles', got {list(out.columns)}"
     first = out.iloc[0]["smiles"]
     assert isinstance(first, str) and len(first) > 0, f"First SMILES is invalid: {first!r}"
+
+
+def test_fetch_smiles_dataframe_filter_rows() -> None:
+    df = pd.DataFrame({"id": [1, 2, 3], "SMILES": ["CCO", "CCC", "CCN"]})
+    out = fetch_smiles_from_dataframe(
+        df,
+        smiles_col="SMILES",
+        index_col="id",
+        filter_rows={"id": [2]},
+    )
+    assert out.shape[0] == 1, f"Expected 1 row after filtering, got shape {out.shape}"
+    assert 2 in out["id"].values, f"Expected remaining id to be 2, got {out['id'].tolist()}"

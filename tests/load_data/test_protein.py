@@ -76,3 +76,15 @@ def test_fetch_proteins_from_real_dataset(protein_csv: Path) -> None:
     ], f"Expected single column 'protein_sequence', got {list(out.columns)}"
     first = out.iloc[0]["protein_sequence"]
     assert isinstance(first, str) and len(first) > 0, f"First protein sequence is invalid: {first!r}"
+
+
+def test_fetch_protein_sequences_dataframe_filter_rows() -> None:
+    df = pd.DataFrame({"id": [1, 2, 3], "Protein": ["MKT", "GAV", "TTT"]})
+    out = fetch_protein_sequences_from_dataframe(
+        df,
+        prot_seq_col="Protein",
+        index_col="id",
+        filter_rows={"id": [3]},
+    )
+    assert out.shape[0] == 1, f"Expected 1 row after filtering, got shape {out.shape}"
+    assert 3 in out["id"].values, f"Expected remaining id to be 3, got {out['id'].tolist()}"

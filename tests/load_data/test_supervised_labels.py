@@ -67,6 +67,30 @@ def test_one_hot_encode_labels_single_and_multi_columns() -> None:
     assert any(c.startswith("b_") for c in oh2.columns), f"Expected one-hot columns for 'b': {list(oh2.columns)}"
 
 
+def test_fetch_supervised_labels_dataframe_filter_rows() -> None:
+    df = pd.DataFrame({"id": [1, 2, 3], "Y": [0, 1, 0]})
+    out = fetch_supervised_labels_from_dataframe(
+        df,
+        label_col="Y",
+        index_col="id",
+        filter_rows={"id": [1, 3]},
+    )
+    assert out.shape[0] == 2, f"Expected 2 rows after filtering, got shape {out.shape}"
+    assert set(out["id"].values) == {1, 3}, f"Unexpected remaining ids: {out['id'].tolist()}"
+
+
+def test_fetch_supervised_labels_with_filter_rows(tmp_path: Path) -> None:
+    # Create a small CSV with an ID column to filter on
+    df = pd.DataFrame({"id": [1, 2, 3], "Y": [0, 1, 0]})
+    csv = tmp_path / "labels.csv"
+    csv.write_text(df.to_csv(index=False))
+
+    # Apply a filter to keep only id==2; include index_col so filter can apply
+    out = fetch_supervised_labels_from_dataframe(str(csv), label_col="Y", index_col="id", filter_rows={"id": [2]})
+    assert out.shape[0] == 1, f"Expected 1 row after filtering, got shape {out.shape}"
+    assert 2 in out["id"].values, f"Expected remaining id to be 2, got {out['id'].tolist()}"
+
+
 def test_fetch_labels_from_real_dataset(labels_csv: Path) -> None:
     out = fetch_supervised_labels_from_dataframe(str(labels_csv), label_col="Y")
     assert not out.empty, f"No label rows loaded from {labels_csv}"

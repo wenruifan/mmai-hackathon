@@ -117,8 +117,8 @@ def load_mimic_iv_ehr(
             naive concatenation. Default: None.
         subset_cols (Optional[Dict[str, List[str]]]): Per-table column selection. If provided, only these columns
             will be loaded from each table. Default: None.
-        filter_rows (Optional[Dict[str, Union[Sequence, pd.Index]]]): Per-table row filtering. If provided, only rows
-            with values in the specified columns will be retained. Will be ignored if not found in one of the dataframes. Default: None.
+        filter_rows (Optional[Dict[str, Union[Sequence, pd.Index]]]): A dictionary to filter rows in the DataFrame.
+            Keys are column names and values are the values to filter by. Default: None.
         merge (bool): Whether to merge the loaded tables into components based on shared keys. Default: True.
         join (str): Merge strategy to use when merging tables given merge=True. Options include 'inner', 'outer', 'left', and 'right'.
             Default: 'inner'.

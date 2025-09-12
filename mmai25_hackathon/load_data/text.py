@@ -21,7 +21,7 @@ retrieves the note matching the provided `note_id`, printing its full text and s
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 import pandas as pd
 from sklearn.utils._param_validation import StrOptions, validate_params
@@ -39,6 +39,7 @@ REQUIRED_ID_COLS = ["note_id", "subject_id"]
         "subset": [StrOptions({"radiology", "discharge"})],
         "include_detail": ["boolean"],
         "subset_cols": [None, list],
+        "filter_rows": [None, dict],
     },
     prefer_skip_nested_validation=True,
 )
@@ -47,6 +48,7 @@ def load_mimic_iv_notes(
     subset: Literal["radiology", "discharge"] = "radiology",
     include_detail: bool = False,
     subset_cols: Optional[List[str]] = ["hadm_id", "note_type", "note_seq", "charttime", "storetime", "text"],
+    filter_rows: Optional[Dict[str, Union[Sequence, pd.Index]]] = None,
 ) -> pd.DataFrame:
     """
     Load de-identified free-text clinical notes for a selected MIMIC-IV subset and
@@ -54,9 +56,9 @@ def load_mimic_iv_notes(
 
     High-level steps:
     - Validate the input directory exists; resolve ``note_path`` to ``Path``.
-    - Load ``<subset>.csv`` via ``read_tabular`` with ``subset_cols`` plus required IDs.
+    - Load ``<subset>.csv`` via ``read_tabular`` with ``subset_cols`` plus required IDs; apply ``filter_rows`` when provided.
     - Ensure required ID columns (``note_id``, ``subject_id``) are present.
-    - When ``include_detail`` is True, load ``<subset>_detail.csv``, validate IDs, and left-merge on IDs.
+    - When ``include_detail`` is True, load ``<subset>_detail.csv`` (also applying ``filter_rows``), validate IDs, and left‑merge on IDs.
     - If ``text`` exists, ``str.strip`` and drop empty rows; otherwise log a warning.
     - Return the resulting ``pd.DataFrame``.
 
@@ -68,6 +70,8 @@ def load_mimic_iv_notes(
             Default: False.
         subset_cols (Optional[List[str]]): Columns to load from the main notes CSV in addition to the
             required ID columns. Defaults to a small set including ``'text'``.
+        filter_rows (dict, optional): A dictionary to filter rows in the DataFrame.
+            Keys are column names and values are the values to filter by. Default: None.
 
     Returns:
         pd.DataFrame: Notes for the requested subset. When ``text`` exists, values are trimmed and
@@ -104,7 +108,7 @@ def load_mimic_iv_notes(
 
     logger = logging.getLogger(f"{__name__}.load_mimic_iv_notes")
     logger.info("Loading notes from: %s", subset_path)
-    df_notes = read_tabular(subset_path, subset_cols=subset_cols, index_cols=REQUIRED_ID_COLS)
+    df_notes = read_tabular(subset_path, subset_cols=subset_cols, index_cols=REQUIRED_ID_COLS, filter_rows=filter_rows)
     logger.info("Loaded %d notes from: %s", len(df_notes), subset_path)
 
     id_cols_available = df_notes.columns.intersection(REQUIRED_ID_COLS).to_list()
@@ -117,7 +121,7 @@ def load_mimic_iv_notes(
 
     if include_detail:
         logger.info("Including detail from: %s", detail_path)
-        df_detail = read_tabular(detail_path, index_cols=REQUIRED_ID_COLS)
+        df_detail = read_tabular(detail_path, index_cols=REQUIRED_ID_COLS, filter_rows=filter_rows)
         logger.info("Loaded %d detail rows from: %s", len(df_detail), detail_path)
         id_cols_available = df_detail.columns.intersection(REQUIRED_ID_COLS).to_list()
         if len(id_cols_available) < len(REQUIRED_ID_COLS):
