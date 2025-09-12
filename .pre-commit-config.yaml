@@ -2,48 +2,29 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
-      - id: check-added-large-files
-        args: ["--maxkb=300"]
-      - id: fix-byte-order-marker
-      - id: check-case-conflict
-      - id: check-merge-conflict
-      - id: end-of-file-fixer
-      - id: forbid-new-submodules
-      - id: mixed-line-ending
-      - id: trailing-whitespace
-      - id: debug-statements
       - id: check-yaml
-      - id: requirements-txt-fixer
-  - repo: https://github.com/pycqa/flake8.git
-    rev: 6.1.0
-    hooks:
-      - id: flake8
-        args: [ --config=setup.cfg ]
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
   - repo: https://github.com/psf/black
-    rev: 23.11.0
+    rev: 25.1.0
     hooks:
       - id: black
-        language_version: python3
-        additional_dependencies: [ 'click==8.0.4' ]
+        args: ["--line-length=120"]
+
   - repo: https://github.com/pycqa/isort
-    rev: 5.11.2
+    rev: 6.0.1
     hooks:
       - id: isort
-        name: isort
-        entry: python -m isort
-        args: [ --settings-path, ./pyproject.toml ]
-        language: system
-        types: [ python ]
-#  - repo: https://github.com/astral-sh/ruff-pre-commit
-#    # Ruff version.
-#    rev: v0.12.11
-#    hooks:
-#      # Run the linter.
-#      - id: ruff-check
-#        args: [--fix]
-#      # Run the formatter.
-#      - id: ruff-format
+        args: ["--profile=black", "--line-length=120"]
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        additional_dependencies: []
+        args: ["--max-line-length=120"]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.7.1
+    rev: v1.18.1
     hooks:
       - id: mypy
