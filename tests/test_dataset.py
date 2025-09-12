@@ -37,8 +37,8 @@ def test_incomplete_subclass_abstract_methods_raise() -> None:
         _ = ds[0]
     with pytest.raises(NotImplementedError):
         _ = ds + ds
-    # ``prepare_data`` is optional; calling it should not raise
-    assert ds.prepare_data() is None
+    with pytest.raises(NotImplementedError):
+        ds.prepare_data()
 
 
 def test_complete_subclass_repr_and_len() -> None:

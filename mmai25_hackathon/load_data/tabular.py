@@ -185,10 +185,6 @@ def merge_multiple_dataframes(
         >>> # The first component merges df1 & df2 on 'id'; non-key collisions would get
         >>> # suffixes '_X' and '_Y'. The second component is just df3 keyed by 'site'.
     """
-    valid_joins = {"outer", "inner", "left", "right"}
-    if join not in valid_joins:
-        raise ValueError(f"`join` must be one of {valid_joins}, got {join!r}")
-
     if dfs_name is not None and len(dfs_name) != len(dfs):
         raise ValueError(
             f"Length of `dfs_name` must match length of `dfs`. Found {len(dfs_name)} and {len(dfs)} respectively."
