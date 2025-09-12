@@ -1,7 +1,7 @@
 # MultimodalAI'25 Hackathon Base Source Code
 
 [![tests](https://github.com/pykale/mmai-hackathon/workflows/test/badge.svg)](https://github.com/pykale/mmai-hackathon/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/pykale/mmai-hackathon/branch/main/graph/badge.svg?token=jmIYPbA2le)](https://codecov.io/gh/pykale/mmai-hackathon)
+[![codecov](https://codecov.io/gh/pykale/mmai-hackathon/branch/main/graph/badge.svg)](https://codecov.io/gh/pykale/mmai-hackathon)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/pykale/mmai-hackathon/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org)
 
@@ -28,6 +28,7 @@ cd mmai-hackathon
 conda create -n mmai-hackathon python=3.11 -y
 conda activate mmai-hackathon
 
+
 # venv (alternative)
 # python3 -m venv .venv && source .venv/bin/activate
 
@@ -38,7 +39,6 @@ conda activate mmai-hackathon
 ### 2) Install dependencies (with tests)
 
 ```bash
-pip install --upgrade pip
 
 # Recommended for development and testing (includes pytest, coverage, linters)
 pip install -e .[dev]
