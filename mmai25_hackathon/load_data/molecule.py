@@ -12,7 +12,7 @@ smiles_to_graph(smiles, with_hydrogen=False, kekulize=False)
     Flags `with_hydrogen` and `kekulize` are forwarded to the underlying conversion.
 
 Preview CLI:
-`python -m mmai25_hackathon.load_data.molecule /path/to/dataset.csv`
+`python -m mmai25_hackathon.load_data.molecule --data-path /path/to/dataset.csv`
 Reads the CSV, prints a small preview of the SMILES column, and converts the first few entries to graphs, printing each
 graph’s summary (e.g., number of nodes/edges and feature sizes).
 """
@@ -36,6 +36,11 @@ __all__ = ["fetch_smiles_from_dataframe", "smiles_to_graph"]
 def fetch_smiles_from_dataframe(df: Union[pd.DataFrame, str], smiles_col: str, index_col: str = None) -> pd.DataFrame:
     """
     Fetches SMILES strings from a DataFrame or CSV file. Will read the CSV if a path is provided.
+
+    High-level steps:
+    - If `df` is a path, load via `read_tabular` selecting `smiles_col` and optional `index_col`.
+    - Validate `smiles_col` exists; optionally set DataFrame index.
+    - Return a one-column DataFrame named `"smiles"` (index preserved if set).
 
     Args:
         df (Union[pd.DataFrame, str]): DataFrame or path to CSV file.
@@ -81,6 +86,10 @@ def smiles_to_graph(smiles: str, with_hydrogen: bool = False, kekulize: bool = F
     """
     Converts a SMILES string to a molecular graph representation.
 
+    High-level steps:
+    - Forward to `torch_geometric.utils.smiles.from_smiles` with `with_hydrogen` and `kekulize` flags.
+    - Return the resulting `torch_geometric.data.Data` graph.
+
     Args:
         smiles (str): The SMILES string to convert.
         with_hydrogen (bool): Store hydrogens in the graph if True. Default: False
@@ -109,9 +118,14 @@ def smiles_to_graph(smiles: str, with_hydrogen: bool = False, kekulize: bool = F
 if __name__ == "__main__":
     import argparse
 
-    # Example script: python -m mmai25_hackathon.load_data.molecule dataset.csv
+    # Example script: python -m mmai25_hackathon.load_data.molecule --data-path MMAI25Hackathon/molecule-protein-interaction/dataset.csv
     parser = argparse.ArgumentParser(description="Process SMILES strings.")
-    parser.add_argument("data_path", type=str, help="Path to the CSV file containing SMILES strings.")
+    parser.add_argument(
+        "--data-path",
+        type=str,
+        help="Path to the CSV file containing SMILES strings.",
+        default="MMAI25Hackathon/molecule-protein-interaction/dataset.csv",
+    )
     args = parser.parse_args()
 
     # Take from Peizhen's csv file for DrugBAN training

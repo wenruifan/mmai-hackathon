@@ -12,7 +12,7 @@ one_hot_encode_labels(labels, columns="label")
     a `pd.DataFrame` with `float32` dtypes.
 
 Preview CLI:
-`python -m mmai25_hackathon.load_data.supervised_labels /path/to/labels.csv`
+`python -m mmai25_hackathon.load_data.supervised_labels --data-path /path/to/labels.csv`
 Reads the CSV (expects a label column named `Y` in this demo), prints the first five labels, then prints a preview of
 one-hot–encoded labels.
 """
@@ -39,6 +39,12 @@ def fetch_supervised_labels_from_dataframe(
 ) -> pd.DataFrame:
     """
     Fetches supervision labels from a DataFrame or CSV file. Will read the CSV if a path is provided.
+
+    High-level steps:
+    - If `df` is a path, load via `read_tabular` selecting `label_col` and optional `index_col`.
+    - Validate that the requested label column(s) are present.
+    - If a single column, optionally set index and return DataFrame named `"label"`.
+    - If multiple columns, return the DataFrame as-is.
 
     Args:
         df (Union[pd.DataFrame, str]): DataFrame or path to CSV file.
@@ -81,6 +87,11 @@ def one_hot_encode_labels(labels: pd.DataFrame, columns: Union[Sequence[str], st
     """
     One-hot encodes categorical labels in a DataFrame.
 
+    High-level steps:
+    - Coerce `columns` to a list of column names.
+    - Call `pandas.get_dummies` with `dtype=np.float32` on the specified columns.
+    - Return the one-hot encoded DataFrame.
+
     Args:
         labels (pd.DataFrame): DataFrame containing the labels to be one-hot encoded.
         columns (Union[Sequence[str], str]): Column name or sequence of column names to be one-hot encoded. Default: "label".
@@ -106,9 +117,14 @@ def one_hot_encode_labels(labels: pd.DataFrame, columns: Union[Sequence[str], st
 if __name__ == "__main__":
     import argparse
 
-    # Example script: python -m mmai25_hackathon.load_data.supervised_labels dataset.csv
+    # Example script: python -m mmai25_hackathon.load_data.supervised_labels --data-path MMAI25Hackathon/molecule-protein-interaction/dataset.csv
     parser = argparse.ArgumentParser(description="Process supervision labels for regression/classification.")
-    parser.add_argument("data_path", type=str, help="Path to the CSV file containing supervision labels.")
+    parser.add_argument(
+        "--data-path",
+        type=str,
+        help="Path to the CSV file containing supervision labels.",
+        default="MMAI25Hackathon/molecule-protein-interaction/dataset.csv",
+    )
     args = parser.parse_args()
 
     # Take from Peizhen's csv file for DrugBAN training

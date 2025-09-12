@@ -13,7 +13,7 @@ extract_text_from_note(note, include_metadata=False)
     `(text, metadata_dict)` where `metadata_dict` is the note’s fields excluding `text`.
 
 Preview CLI:
-`python -m mmai25_hackathon.load_data.text /path/to/mimic-iv-note-.../note radiology 12345678`
+`python -m mmai25_hackathon.load_data.text --data-path /path/to/mimic-iv-note-.../note --subset radiology --note-id 12345678`
 Prints a preview of the loaded notes (columns like `note_id`, `subject_id`, `hadm_id`, `note_type`, `text`) and then
 retrieves the note matching the provided `note_id`, printing its full text and selected metadata (e.g., `subject_id`,
 `hadm_id`, `note_type`).
@@ -46,15 +46,49 @@ def load_mimic_iv_notes(
     note_path: Union[str, Path],
     subset: Literal["radiology", "discharge"] = "radiology",
     include_detail: bool = False,
-    subset_cols: Optional[List[str]] = [
-        "hadm_id",
-        "note_type",
-        "note_seq",
-        "charttime",
-        "storetime",
-        "text",
-    ],
+    subset_cols: Optional[List[str]] = ["hadm_id", "note_type", "note_seq", "charttime", "storetime", "text"],
 ) -> pd.DataFrame:
+    """
+    Load de-identified free-text clinical notes for a selected MIMIC-IV subset and
+    optionally merge the corresponding detail CSV.
+
+    Validates ``note_path``, loads ``<subset>.csv`` (e.g., ``radiology.csv``) via ``read_tabular``
+    selecting ``subset_cols`` plus the required IDs (``note_id``, ``subject_id``), and when
+    ``include_detail=True`` merges ``<subset>_detail.csv`` on the same IDs. If a ``text`` column is
+    present, trims whitespace and drops rows with empty strings; otherwise, logs a warning and returns
+    the unfiltered DataFrame.
+
+    Args:
+        note_path (Union[str, Path]): Directory containing the notes CSV files
+            (for example: ``.../mimic-iv-note-.../note``).
+        subset (Literal['radiology', 'discharge']): Which note subset to load. Default: ``'radiology'``.
+        include_detail (bool): If True, left-join ``<subset>_detail.csv`` on ``['note_id', 'subject_id']``.
+            Default: False.
+        subset_cols (Optional[List[str]]): Columns to load from the main notes CSV in addition to the
+            required ID columns. Defaults to a small set including ``'text'``.
+
+    Returns:
+        pd.DataFrame: Notes for the requested subset. When ``text`` exists, values are trimmed and
+        empty rows removed; when ``include_detail=True``, columns from the detail CSV may be present.
+
+    Raises:
+        FileNotFoundError: If ``note_path`` or the main CSV (``<subset>.csv``) is missing, or if
+            ``include_detail=True`` and ``<subset>_detail.csv`` is missing.
+        KeyError: If the required ID columns ``['note_id', 'subject_id']`` are absent from the main
+            or (when requested) detail CSV.
+
+    Examples:
+        >>> from mmai25_hackathon.load_data.text import load_mimic_iv_notes
+        >>> base = "MMAI25Hackathon/mimic-iv/mimic-iv-note-deidentified-free-text-clinical-notes-2.2/note"
+        >>> df = load_mimic_iv_notes(base, subset="radiology", include_detail=True)
+        >>> df.head()[["note_id", "subject_id", "note_type", "text"]]
+           note_id  subject_id  hadm_id note_type                                               text
+        0        1         101        1        DS  EXAMINATION: CHEST (PA AND LAT)INDICATION: ___...
+        1        2         101        2        DS  EXAMINATION: LIVER OR GALLBLADDER US (SINGLE O...
+        2        3         101        3        DS  INDICATION: ___ HCV cirrhosis c/b ascites, hiv...
+        3        4         102        4        DS  EXAMINATION: Ultrasound-guided paracentesis.IN...
+        4        5         102        5        DS  EXAMINATION: Ultrasound-guided paracentesis.IN...
+    """
     if isinstance(note_path, str):
         note_path = Path(note_path)
 
@@ -109,6 +143,12 @@ def extract_text_from_note(note: pd.Series, include_metadata: bool = False) -> U
     """
     Extracts the text from a note Series, optionally returning metadata.
 
+    High-level steps:
+    - Validate that the input Series contains a ``'text'`` field; otherwise, raise ``KeyError``.
+    - When ``include_metadata`` is False, return only the note text.
+    - When ``include_metadata`` is True, return a tuple of ``(text, metadata_dict)`` where
+      ``metadata_dict`` is the note’s fields excluding ``'text'``.
+
     Args:
         note (pd.Series): A pandas Series representing a note, expected to contain a 'text' column.
         include_metadata (bool): If True, return a tuple of (text, metadata_dict). Default is False.
@@ -148,16 +188,22 @@ if __name__ == "__main__":
     import argparse
 
     # Example script:
-    # python -m mmai25_hackathon.load_data.text mimic-iv/mimic-iv-note-deidentified-free-text-clinical-notes-2.2/note radiology 1
+    # python -m mmai25_hackathon.load_data.text --data-path mimic-iv/mimic-iv-note-deidentified-free-text-clinical-notes-2.2/note --subset radiology --note-id 1
     parser = argparse.ArgumentParser(description="Load MIMIC-IV free-text clinical notes.")
-    parser.add_argument("data_path", type=str, help="Path to the MIMIC-IV notes directory (containing CSV files).")
     parser.add_argument(
-        "subset",
+        "--data-path",
+        type=str,
+        help="Path to the MIMIC-IV notes directory (containing CSV files).",
+        default="MMAI25Hackathon/mimic-iv/mimic-iv-note-deidentified-free-text-clinical-notes-2.2/note",
+    )
+    parser.add_argument(
+        "--subset",
         type=str,
         choices=["radiology", "discharge"],
         help="Which note subset to load (radiology or discharge).",
+        default="radiology",
     )
-    parser.add_argument("note_id", type=int, help="The note_id of the note to retrieve.")
+    parser.add_argument("--note-id", type=int, help="The note_id of the note to retrieve.", default=1)
     args = parser.parse_args()
 
     print(f"Loading {args.subset} notes from: {args.data_path}")

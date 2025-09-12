@@ -13,7 +13,7 @@ load_echo_dicom(path)
     `RescaleIntercept`, and `metadata` is a dict of DICOM keywords to values.
 
 Preview CLI:
-`python -m mmai25_hackathon.load_data.echo /path/to/mimic-iv-echo-...`
+`python -m mmai25_hackathon.load_data.echo --data-path /path/to/mimic-iv-echo-...`
 Prints a preview of the record list and loads one example DICOM to report shape and selected metadata.
 """
 
@@ -39,6 +39,13 @@ def load_mimic_iv_echo_record_list(
     """
     Load the MIMIC-IV-ECHO `echo-record-list.csv` file as a DataFrame and maps DICOM file paths.
     The path must contain a `files` subdirectory with the DICOM files.
+
+    High-level steps:
+    - Validate dataset root, ensure `files/` and `echo-record-list.csv` exist.
+    - Load CSV via `read_tabular`, optionally applying `filter_rows`.
+    - Strip `dicom_filepath`, resolve absolute `echo_path` under the root.
+    - Keep only rows whose `echo_path` exists on disk.
+    - Return the filtered DataFrame.
 
     Args:
         echo_path (str): The root directory of the MIMIC-IV-ECHO dataset.
@@ -93,6 +100,14 @@ def load_echo_dicom(path: Union[str, Path]) -> Tuple[np.ndarray, Dict[str, Any]]
     """
     Load an ECHO DICOM (supports multi-frame cine) using pydicom.
 
+    High-level steps:
+    - Coerce `path` to `Path` and validate it exists.
+    - Read DICOM via `pydicom.dcmread` and extract `pixel_array`.
+    - If 2D, expand dims to shape `(1, H, W)`.
+    - Apply rescale using `RescaleSlope` and `RescaleIntercept` if present.
+    - Collect metadata from DICOM elements into a dictionary.
+    - Return `(frames, metadata)`.
+
     Args:
         path (Union[str, Path]): The path to the ECHO DICOM file.
 
@@ -138,10 +153,13 @@ if __name__ == "__main__":
     import argparse
 
     # Example script:
-    # python -m mmai25_hackathon.load_data.echo mimic-iv/mimic-iv-echo-0.1.physionet.org
+    # python -m mmai25_hackathon.load_data.echo --data-path mimic-iv/mimic-iv-echo-0.1.physionet.org
     parser = argparse.ArgumentParser(description="Load MIMIC-IV-ECHO metadata and DICOM files.")
     parser.add_argument(
-        "data_path", type=str, help="Path to the MIMIC-IV-ECHO dataset directory (containing 'files' subdirectory)."
+        "--data-path",
+        type=str,
+        help="Path to the MIMIC-IV-ECHO dataset directory (containing 'files' subdirectory).",
+        default="MMAI25Hackathon/mimic-iv/mimic-iv-echo-0.1.physionet.org",
     )
     args = parser.parse_args()
 

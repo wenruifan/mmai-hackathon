@@ -11,7 +11,7 @@ protein_sequence_to_integer_encoding(sequence, max_length=1200)
     for padding/unknown. Returns a NumPy array of shape `(max_length,)`.
 
 Preview CLI:
-`python -m mmai25_hackathon.load_data.protein /path/to/proteins.csv`
+`python -m mmai25_hackathon.load_data.protein --data-path /path/to/proteins.csv`
 Reads the CSV, prints a small preview of the protein sequences, and encodes the first few entries, printing each array’s
 shape and the count of unknown (0) tokens.
 """
@@ -42,6 +42,11 @@ def fetch_protein_sequences_from_dataframe(
 ) -> pd.DataFrame:
     """
     Fetches protein sequences from a DataFrame or CSV file. Will read the CSV if a path is provided.
+
+    High-level steps:
+    - If `df` is a path, load via `read_tabular` selecting `prot_seq_col` and optional `index_col`.
+    - Validate `prot_seq_col` exists; optionally set DataFrame index.
+    - Return a one-column DataFrame named `"protein_sequence"` (index preserved if set).
 
     Args:
         df (Union[pd.DataFrame, str]): DataFrame or path to CSV file.
@@ -87,6 +92,11 @@ def protein_sequence_to_integer_encoding(sequence: str, max_length: int = 1200) 
     """
     Converts a protein sequence into an integer-encoded representation.
 
+    High-level steps:
+    - Allocate a zero-initialised array of length `max_length` (dtype `uint64`).
+    - For each character up to `max_length`, map A–Z (excluding 'J') using a lookup (unknown→0).
+    - Return the encoded array.
+
     Args:
         sequence (str): The protein sequence to encode.
         max_length (int): The maximum length of the output array.
@@ -119,9 +129,14 @@ def protein_sequence_to_integer_encoding(sequence: str, max_length: int = 1200) 
 if __name__ == "__main__":
     import argparse
 
-    # Example script: python -m mmai25_hackathon.load_data.protein dataset.csv
+    # Example script: python -m mmai25_hackathon.load_data.protein --data-path MMAI25Hackathon/molecule-protein-interaction/dataset.csv
     parser = argparse.ArgumentParser(description="Process protein sequences.")
-    parser.add_argument("data_path", type=str, help="Path to the CSV file containing protein sequences.")
+    parser.add_argument(
+        "--data-path",
+        type=str,
+        help="Path to the CSV file containing protein sequences.",
+        default="MMAI25Hackathon/molecule-protein-interaction/dataset.csv",
+    )
     args = parser.parse_args()
 
     # Take from Peizhen's csv file for DrugBAN training

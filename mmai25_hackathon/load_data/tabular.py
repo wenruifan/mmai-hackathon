@@ -13,7 +13,7 @@ merge_multiple_dataframes(dfs, dfs_name=None, index_cols=None, join="outer")
     Returns a list of `(keys_tuple, merged_df)`. Name collisions get suffixes from `dfs_name` or `_df{i}`.
 
 Preview CLI:
-`python -m mmai25_hackathon.load_data.tabular BASE_PATH --index-cols ... --subset-cols ... --join outer`
+`python -m mmai25_hackathon.load_data.tabular --data-path BASE_PATH --index-cols ... --subset-cols ... --join outer`
 Recursively loads `*.csv`, then groups/merges and prints a preview for each component.
 """
 
@@ -51,6 +51,13 @@ def read_tabular(
 
     If `subset_cols` and/or `index_cols` are provided, will select only those columns
     that exist in the DataFrame. The order will be `index_cols` followed by `subset_cols`.
+
+    High-level steps:
+    - Read CSV via `pandas.read_csv` with separator `sep`.
+    - Normalise `subset_cols`/`index_cols` to lists; compute intersections with available columns.
+    - When `raise_errors` and none of the requested columns exist, raise `ValueError`.
+    - Order columns with `index_cols` first then `subset_cols`; filter rows per `filter_rows` where possible.
+    - Return the resulting DataFrame.
 
     Args:
         path (Union[str, Path]): Path to the tabular text file.
@@ -141,12 +148,13 @@ def merge_multiple_dataframes(
     """
     Merge a sequence of DataFrames by shared keys until disjoint components remain.
 
-    - If `index_cols` is None/empty, return a single component with all frames concatenated
-      column-wise: [((), concat_df)].
-    - Otherwise: (1) merge frames that share the same subset of `index_cols`, then
-      (2) greedily merge groups whose key sets overlap (prefer larger overlaps, then
-      smaller combined size). Column collisions get suffixes from `dfs_name`
-      (or `_df{i}` if not provided).
+    High-level steps:
+    - Validate `join` option and `dfs_name` length.
+    - If `dfs` is empty, return []. If `index_cols` is falsy, concatenate columns and return single component.
+    - Group frames by the exact subset of provided keys they contain; if none, return [].
+    - Merge within each group using suffixes determined by `dfs_name`.
+    - Greedily merge groups whose key sets overlap until no overlaps remain.
+    - Return components as `(sorted_keys_tuple, DataFrame)` pairs.
 
     Args:
         dfs (Sequence[pd.DataFrame]): Sequences of dataframes to merge.
@@ -270,15 +278,17 @@ if __name__ == "__main__":
     import argparse
 
     # Example script (assuming folder mimic-iv/mimic-iv-3.1 is in the current directory)
-    # python -m mmai25_hackathon.load_data.tabular mimic-iv/mimic-iv-3.1 --index_cols subject_id hadm_id charttime --join outer
+    # python -m mmai25_hackathon.load_data.tabular --data-path mimic-iv/mimic-iv-3.1 --index-cols subject_id hadm_id --subset-cols language --join outer
     # NOTE: Expect increase in row count given we are doing outer join and each dataframes may or will have
     #       different relational structures (i.e., admissions to icustays in MIMIC-IV has one-to-many
     #       relationship w.r.t. subject_id and hadm_id)
 
     parser = argparse.ArgumentParser(description="Read and aggregate tabular CSV files.")
-    parser.add_argument("data_path", help="Data path for the CSV files.")
-    parser.add_argument("--index_cols", nargs="+", default=None, help="Columns to use as index.")
-    parser.add_argument("--subset_cols", nargs="+", default=None, help="Columns to subset.")
+    parser.add_argument(
+        "--data-path", help="Data path for the CSV files.", default="MMAI25Hackathon/mimic-iv/mimic-iv-3.1"
+    )
+    parser.add_argument("--index-cols", nargs="+", default=["subject_id", "hadm_id"], help="Columns to use as index.")
+    parser.add_argument("--subset-cols", nargs="+", default=["language"], help="Columns to subset.")
     parser.add_argument("--join", default="outer", help="Join type for merging DataFrames.")
     args = parser.parse_args()
 
@@ -286,11 +296,13 @@ if __name__ == "__main__":
     csv_files = list(Path(args.data_path).rglob("*.csv"))
 
     # Load multiple dataframes
-    dfs = [read_tabular(f, index_cols=args.index_cols, subset_cols=args.subset_cols) for f in csv_files]
-    df_names = [f.stem for f in csv_files]
+    dfs = [
+        read_tabular(f, index_cols=args.index_cols, subset_cols=args.subset_cols, raise_errors=False) for f in csv_files
+    ]
+    dfs_name = [f.stem for f in csv_files]
 
     # Merge dataframes
-    components = merge_multiple_dataframes(dfs, dfs_name=df_names, index_cols=args.index_cols, join=args.join)
+    components = merge_multiple_dataframes(dfs, dfs_name=dfs_name, index_cols=args.index_cols, join=args.join)
 
     for keys, comp_df in components:
         print(f"Component keys: {keys}")

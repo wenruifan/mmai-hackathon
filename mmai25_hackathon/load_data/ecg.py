@@ -14,7 +14,7 @@ load_ecg_record(hea_path)
     and `metadata` is a dict of WFDB header fields (e.g., `fs`, `n_sig`).
 
 Preview CLI:
-`python -m mmai25_hackathon.load_data.ecg /path/to/mimic-iv-ecg-...`
+`python -m mmai25_hackathon.load_data.ecg --data-path /path/to/mimic-iv-ecg-...`
 Prints a preview of the record list (including `hea_path` and `dat_path`), then loads one example record
 to report the array shape and selected metadata (sampling frequency and number of leads).
 """
@@ -41,6 +41,13 @@ def load_mimic_iv_ecg_record_list(
     """
     Load the MIMIC-IV-ECG `record_list.csv` file as a DataFrame and maps available `.dat` and `.hea` files
     to their respective paths. The path must contain a `files` subdirectory with the ECG files.
+
+    High-level steps:
+    - Validate dataset root, ensure `files/` and `record_list.csv` exist.
+    - Load CSV via `read_tabular`, optionally applying `filter_rows`.
+    - Strip `path`, resolve absolute `ecg_path`, and derive `hea_path`/`dat_path`.
+    - Keep only rows for which both `.hea` and `.dat` exist.
+    - Return the filtered DataFrame.
 
     Args:
         ecg_path (Union[str, Path]): The root directory of the MIMIC-IV-ECG dataset.
@@ -106,6 +113,11 @@ def load_ecg_record(hea_path: Union[str, Path]) -> Tuple[np.ndarray, Dict[str, A
     """
     Load an ECG record given a .hea file path using wfdb.
 
+    High-level steps:
+    - Coerce `hea_path` to `Path` and validate the file exists.
+    - Call `wfdb.rdsamp` with the stem (path without suffix).
+    - Return the sampled `signals` and `fields` metadata.
+
     Args:
         hea_path (Union[str, Path]): The path to the .hea file.
 
@@ -144,10 +156,13 @@ if __name__ == "__main__":
     import argparse
 
     # Example script:
-    # python -m mmai25_hackathon.load_data.ecg mimic-iv/mimic-iv-ecg-diagnostic-electrocardiogram-matched-subset-1.0
+    # python -m mmai25_hackathon.load_data.ecg --data-path mimic-iv/mimic-iv-ecg-diagnostic-electrocardiogram-matched-subset-1.0
     parser = argparse.ArgumentParser(description="Load MIMIC-IV-ECG metadata and records.")
     parser.add_argument(
-        "data_path", type=str, help="Path to the MIMIC-IV-ECG dataset root (should contain 'files' subdirectory)."
+        "--data-path",
+        type=str,
+        help="Path to the MIMIC-IV-ECG dataset root (should contain 'files' subdirectory).",
+        default="MMAI25Hackathon/mimic-iv/mimic-iv-ecg-diagnostic-electrocardiogram-matched-subset-1.0",
     )
     args = parser.parse_args()
 

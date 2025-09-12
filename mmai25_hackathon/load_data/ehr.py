@@ -17,7 +17,7 @@ Notes:
 - `index_cols` are used as merge keys only (the DataFrame index is not set by this helper).
 
 Preview CLI:
-`python -m mmai25_hackathon.load_data.ehr /path/to/mimic-iv-3.1`
+`python -m mmai25_hackathon.load_data.ehr --data-path /path/to/mimic-iv-3.1`
 Loads a small example (e.g., ICU stays + admissions), merges on `subject_id, hadm_id`, and prints a preview.
 """
 
@@ -98,6 +98,14 @@ def load_mimic_iv_ehr(
 ) -> Union[Dict[str, pd.DataFrame], pd.DataFrame]:
     """
     Query, load, and aggregate MIMIC-IV EHR data from specified module(s) and tables.
+
+    High-level steps:
+    - Coerce `ehr_path` to `Path` and validate root; select modules (`hosp`, `icu`, or both) and check subfolders (optional).
+    - Discover available `tables` under selected modules (or validate requested names).
+    - Load each table via `read_tabular` with optional `subset_cols`, `index_cols`, and `filter_rows`.
+    - When `merge=False`, return a dict of DataFrames keyed by table name.
+    - When `merge=True`, call `merge_multiple_dataframes` on loaded tables; if multiple disjoint components remain, raise.
+    - Return the merged DataFrame.
 
     Args:
         ehr_path (Union[str, Path]): Path to the root folder containing `hosp` and/or `icu` subfolders.
@@ -236,9 +244,14 @@ if __name__ == "__main__":
 
     # Example script given the relative path to folder mimic-iv
     # containing mimic-iv-3.1 that has hosp and icu subfolders:
-    # python -m mmai25_hackathon.load_data.ehr mimic-iv/mimic-iv-3.1
+    # python -m mmai25_hackathon.load_data.ehr --data-path mimic-iv/mimic-iv-3.1
     parser = argparse.ArgumentParser(description="Fetch MIMIC-IV EHR data example.")
-    parser.add_argument("data_path", type=str, help="Path to the MIMIC-IV EHR root directory (mimic-iv-3.1).")
+    parser.add_argument(
+        "--data-path",
+        type=str,
+        help="Path to the MIMIC-IV EHR root directory (mimic-iv-3.1).",
+        default="MMAI25Hackathon/mimic-iv/mimic-iv-3.1",
+    )
     args = parser.parse_args()
 
     print("Loading MIMIC-IV EHR data example...")
