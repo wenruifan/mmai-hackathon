@@ -1,29 +1,60 @@
 """
-Molecular data utilities for handling SMILES strings and graph conversion.
+Molecular (SMILES) loading and graph conversion utilities.
 
 Functions:
-    - fetch_smiles_from_dataframe: Extract SMILES strings from DataFrame or CSV.
-    - smiles_to_graph: Convert SMILES to a molecular graph (uses PyG's from_smiles).
+fetch_smiles_from_dataframe(df, smiles_col, index_col=None)
+    Fetches SMILES strings from a DataFrame or CSV. Uses `read_tabular` when a path is provided. Optionally sets an index,
+    and returns a one-column DataFrame named `"smiles"` (index reset if `index_col` is None).
 
-Note:
-    - The function smiles_to_graph is a wrapper for PyG's native from_smiles implementation, provided for clarity in this hackathon context.
+smiles_to_graph(smiles, with_hydrogen=False, kekulize=False)
+    Converts a SMILES string into a PyTorch Geometric `Data` object via `torch_geometric.utils.smiles.from_smiles`.
+    Returns a graph `Data` with typical keys: `x` (node features), `edge_index` (COO connectivity), and `edge_attr`.
+    Flags `with_hydrogen` and `kekulize` are forwarded to the underlying conversion.
+
+Preview CLI:
+`python -m mmai25_hackathon.load_data.molecule --data-path /path/to/dataset.csv`
+Reads the CSV, prints a small preview of the SMILES column, and converts the first few entries to graphs, printing each
+graph’s summary (e.g., number of nodes/edges and feature sizes).
 """
 
-from typing import Union
+import logging
+from typing import Dict, Optional, Sequence, Union
 
 import pandas as pd
+from sklearn.utils._param_validation import validate_params
 from torch_geometric.data import Data
 from torch_geometric.utils.smiles import from_smiles
 
+from .tabular import read_tabular
 
-def fetch_smiles_from_dataframe(df: Union[pd.DataFrame, str], smiles_col: str, index_col: str = None) -> pd.DataFrame:
+__all__ = ["fetch_smiles_from_dataframe", "smiles_to_graph"]
+
+
+@validate_params(
+    {"df": [pd.DataFrame, str], "smiles_col": [str], "index_col": [None, str], "filter_rows": [None, dict]},
+    prefer_skip_nested_validation=True,
+)
+def fetch_smiles_from_dataframe(
+    df: Union[pd.DataFrame, str],
+    smiles_col: str,
+    index_col: str = None,
+    filter_rows: Optional[Dict[str, Union[Sequence, pd.Index]]] = None,
+) -> pd.DataFrame:
     """
     Fetches SMILES strings from a DataFrame or CSV file. Will read the CSV if a path is provided.
+
+    High-level steps:
+    - If `df` is a path, load via `read_tabular` selecting `smiles_col` and optional `index_col`; apply `filter_rows`.
+    - If `df` is a DataFrame and `filter_rows` is provided, apply row filters where columns exist.
+    - Validate `smiles_col` exists; optionally set DataFrame index.
+    - Return a one-column DataFrame named `"smiles"` (index preserved if set).
 
     Args:
         df (Union[pd.DataFrame, str]): DataFrame or path to CSV file.
         smiles_col (str): Column name for SMILES representations.
         index_col (str, optional): Column to set as index. Default: None.
+        filter_rows (dict, optional): A dictionary to filter rows in the DataFrame.
+            Keys are column names and values are the values to filter by. Default: None.
 
     Returns:
         pd.DataFrame: A single column DataFrame containing the SMILES strings with name `"smiles"`.
@@ -44,20 +75,33 @@ def fetch_smiles_from_dataframe(df: Union[pd.DataFrame, str], smiles_col: str, i
         3   CC(=O)O
     """
     if isinstance(df, str):
-        df = pd.read_csv(df)
+        df = read_tabular(df, subset_cols=smiles_col, index_cols=index_col, filter_rows=filter_rows)
+    else:
+        for col, valid_vals in (filter_rows or {}).items():
+            if col in df.columns:
+                df = df[df[col].isin(valid_vals)]
 
     if smiles_col not in df.columns:
         raise ValueError(f"Column '{smiles_col}' not found in DataFrame.")
 
+    logger = logging.getLogger(f"{__name__}.fetch_smiles_from_dataframe")
+
     if index_col is not None:
         df = df.set_index(index_col)
+        logger.info("Setting index column to '%s'.", index_col)
 
-    return df[smiles_col].to_frame("smiles")
+    logger.info("Fetched %d SMILES strings from column '%s'.", len(df), smiles_col)
+    return df[smiles_col].to_frame("smiles").reset_index(drop=index_col is None)
 
 
+@validate_params({"smiles": [str], "with_hydrogen": [bool], "kekulize": [bool]}, prefer_skip_nested_validation=True)
 def smiles_to_graph(smiles: str, with_hydrogen: bool = False, kekulize: bool = False) -> Data:
     """
     Converts a SMILES string to a molecular graph representation.
+
+    High-level steps:
+    - Forward to `torch_geometric.utils.smiles.from_smiles` with `with_hydrogen` and `kekulize` flags.
+    - Return the resulting `torch_geometric.data.Data` graph.
 
     Args:
         smiles (str): The SMILES string to convert.
@@ -79,20 +123,26 @@ def smiles_to_graph(smiles: str, with_hydrogen: bool = False, kekulize: bool = F
         >>> print(graph)
         Data(x=[3, 9], edge_index=[2, 4], edge_attr=[4, 3], smiles='CCO')
     """
+    logger = logging.getLogger(f"{__name__}.smiles_to_graph")
+    logger.info("Converting SMILES to graph: %s", smiles)
     return from_smiles(smiles, with_hydrogen, kekulize)
 
 
 if __name__ == "__main__":
     import argparse
 
-    # Example script: python -m mmai25_hackathon.load_data.molecule dataset.csv
-
+    # Example script: python -m mmai25_hackathon.load_data.molecule --data-path MMAI25Hackathon/molecule-protein-interaction/dataset.csv
     parser = argparse.ArgumentParser(description="Process SMILES strings.")
-    parser.add_argument("csv_path", type=str, help="Path to the CSV file containing SMILES strings.")
+    parser.add_argument(
+        "--data-path",
+        type=str,
+        help="Path to the CSV file containing SMILES strings.",
+        default="MMAI25Hackathon/molecule-protein-interaction/dataset.csv",
+    )
     args = parser.parse_args()
 
     # Take from Peizhen's csv file for DrugBAN training
-    df = fetch_smiles_from_dataframe(args.csv_path, smiles_col="SMILES")
+    df = fetch_smiles_from_dataframe(args.data_path, smiles_col="SMILES")
     for i, smiles in enumerate(df["smiles"].head(5), 1):
         graph = smiles_to_graph(smiles)
         print(i, graph)

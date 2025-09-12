@@ -1,36 +1,64 @@
 """
-Labels handling utilities for supervised learning.
-
-This module provides functions to fetch supervision labels from CSV files or pandas DataFrames, supporting both single-column and multi-column labels for regression or classification tasks. It also includes utilities for one-hot encoding categorical labels.
+Supervised labels loading and encoding utilities.
 
 Functions:
-    - fetch_supervised_labels_from_dataframe: Fetch labels from a DataFrame or CSV file, supporting index columns and single/multi-column labels.
-    - one_hot_encode_labels: One-hot encode categorical labels in a DataFrame, supporting single or multiple columns.
+fetch_supervised_labels_from_dataframe(df, label_col, index_col=None)
+    Fetches labels from a DataFrame or CSV (uses `read_tabular` when a path is provided). Supports single- or multi-column
+    labels for classification/regression. Optionally sets an index. Returns a DataFrame named "label" for a single column
+    or the original column names for multiple columns.
 
-Examples:
-    >>> df = pd.DataFrame({"id": [1, 2, 3], "label": [0, 1, 0]})
-    >>> labels = fetch_supervised_labels_from_dataframe(df, label_col="label", index_col="id")
-    >>> one_hot_labels = one_hot_encode_labels(labels)
+one_hot_encode_labels(labels, columns="label")
+    One-hot encodes categorical label columns using `pandas.get_dummies`. Supports single or multiple columns and returns
+    a `pd.DataFrame` with `float32` dtypes.
+
+Preview CLI:
+`python -m mmai25_hackathon.load_data.supervised_labels --data-path /path/to/labels.csv`
+Reads the CSV (expects a label column named `Y` in this demo), prints the first five labels, then prints a preview of
+one-hot–encoded labels.
 """
 
-from typing import Sequence, Union
+from typing import Dict, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
+from sklearn.utils._param_validation import validate_params
+
+from .tabular import read_tabular
+
+__all__ = ["fetch_supervised_labels_from_dataframe", "one_hot_encode_labels"]
 
 
+@validate_params(
+    {
+        "df": [pd.DataFrame, str],
+        "label_col": [str, "array-like"],
+        "index_col": [None, str],
+        "filter_rows": [None, dict],
+    },
+    prefer_skip_nested_validation=True,
+)
 def fetch_supervised_labels_from_dataframe(
     df: Union[pd.DataFrame, str],
     label_col: Union[str, Sequence[str]],
     index_col: str = None,
+    filter_rows: Optional[Dict[str, Union[Sequence, pd.Index]]] = None,
 ) -> pd.DataFrame:
     """
     Fetches supervision labels from a DataFrame or CSV file. Will read the CSV if a path is provided.
+
+    High-level steps:
+    - If `df` is a path, load via `read_tabular` selecting `label_col` and optional `index_col`; apply `filter_rows`.
+    - If `df` is a DataFrame and `filter_rows` is provided, apply row filters where columns exist.
+    - Validate that the requested label column(s) are present.
+    - If a single column, optionally set index and return DataFrame named `"label"`.
+    - If multiple columns, return the DataFrame as-is.
 
     Args:
         df (Union[pd.DataFrame, str]): DataFrame or path to CSV file.
         label_col (Union[str, Sequence[str]]): Column name or sequence of column names for labels.
         index_col (str, optional): Column to set as index. Default: None.
+        filter_rows (dict, optional): A dictionary to filter rows in the DataFrame.
+            Keys are column names and values are the values to filter by. Default: None.
 
     Returns:
         pd.DataFrame: A DataFrame containing the labels with name `"label"` if a single column is provided,
@@ -49,23 +77,34 @@ def fetch_supervised_labels_from_dataframe(
         3      0
     """
     if isinstance(df, str):
-        df = pd.read_csv(df)
+        df = read_tabular(df, subset_cols=label_col, index_cols=index_col, filter_rows=filter_rows)
+    else:
+        # Apply filter_rows to provided DataFrame for consistency
+        for col, valid_vals in (filter_rows or {}).items():
+            if col in df.columns:
+                df = df[df[col].isin(valid_vals)]
 
     if label_col not in df.columns:
         raise ValueError(f"Column '{label_col}' not found in DataFrame.")
 
+    if isinstance(label_col, (list, tuple)) and len(label_col) > 1:
+        return df
+
     if index_col is not None:
         df = df.set_index(index_col)
 
-    if isinstance(label_col, Sequence) and len(label_col) > 1:
-        return df[list(label_col)]
-
-    return df[label_col].to_frame("label")
+    return df[label_col].to_frame("label").reset_index(drop=index_col is None)
 
 
+@validate_params({"labels": [pd.DataFrame], "columns": [str, "array-like"]}, prefer_skip_nested_validation=True)
 def one_hot_encode_labels(labels: pd.DataFrame, columns: Union[Sequence[str], str] = "label") -> pd.DataFrame:
     """
     One-hot encodes categorical labels in a DataFrame.
+
+    High-level steps:
+    - Coerce `columns` to a list of column names.
+    - Call `pandas.get_dummies` with `dtype=np.float32` on the specified columns.
+    - Return the one-hot encoded DataFrame.
 
     Args:
         labels (pd.DataFrame): DataFrame containing the labels to be one-hot encoded.
@@ -92,14 +131,18 @@ def one_hot_encode_labels(labels: pd.DataFrame, columns: Union[Sequence[str], st
 if __name__ == "__main__":
     import argparse
 
-    # Example script: python -m mmai25_hackathon.load_data.supervised_labels dataset.csv
-
+    # Example script: python -m mmai25_hackathon.load_data.supervised_labels --data-path MMAI25Hackathon/molecule-protein-interaction/dataset.csv
     parser = argparse.ArgumentParser(description="Process supervision labels for regression/classification.")
-    parser.add_argument("csv_path", type=str, help="Path to the CSV file containing supervision labels.")
+    parser.add_argument(
+        "--data-path",
+        type=str,
+        help="Path to the CSV file containing supervision labels.",
+        default="MMAI25Hackathon/molecule-protein-interaction/dataset.csv",
+    )
     args = parser.parse_args()
 
     # Take from Peizhen's csv file for DrugBAN training
-    df = fetch_supervised_labels_from_dataframe(args.csv_path, label_col="Y")
+    df = fetch_supervised_labels_from_dataframe(args.data_path, label_col="Y")
     for i, label in enumerate(df["label"].head(5), 1):
         print(i, label)
 

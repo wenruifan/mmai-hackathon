@@ -1,157 +1,230 @@
-import os
+"""
+MIMIC-IV clinical notes (free-text) loading utilities.
+
+Functions:
+load_mimic_iv_notes(note_path, subset='radiology', include_detail=False, subset_cols=None)
+    Loads the selected notes CSV (`radiology.csv` or `discharge.csv`), verifies required ID columns
+    (`note_id`, `subject_id`), optionally merges `<subset>_detail.csv` when `include_detail=True`,
+    applies optional `subset_cols`, strips/filters empty `text`, and returns a `pd.DataFrame` indexed by
+    [`note_id`, `subject_id`].
+
+extract_text_from_note(note, include_metadata=False)
+    Extracts the `text` field from a single note `pd.Series`. When `include_metadata=True`, returns
+    `(text, metadata_dict)` where `metadata_dict` is the note’s fields excluding `text`.
+
+Preview CLI:
+`python -m mmai25_hackathon.load_data.text --data-path /path/to/mimic-iv-note-.../note --subset radiology --note-id 12345678`
+Prints a preview of the loaded notes (columns like `note_id`, `subject_id`, `hadm_id`, `note_type`, `text`) and then
+retrieves the note matching the provided `note_id`, printing its full text and selected metadata (e.g., `subject_id`,
+`hadm_id`, `note_type`).
+"""
+
+import logging
 from pathlib import Path
-from typing import Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 import pandas as pd
+from sklearn.utils._param_validation import StrOptions, validate_params
 
-# ---- Configure your dataset root ----
-DATA_PATH = r"your_data_path_here"
-TEXT_DIR = "mimic-iv-note-deidentified-free-text-clinical-notes-2.2/note"
-NOTE_PATH = os.path.join(DATA_PATH, TEXT_DIR)
+from .tabular import merge_multiple_dataframes, read_tabular
+
+__all__ = ["load_mimic_iv_notes", "extract_text_from_note"]
+
+REQUIRED_ID_COLS = ["note_id", "subject_id"]
 
 
-# -----------------------------
-# 1) Load notes (radiology or discharge)
-# -----------------------------
-def get_text_notes(
-    base_note_path: str,
+@validate_params(
+    {
+        "note_path": [str, Path],
+        "subset": [StrOptions({"radiology", "discharge"})],
+        "include_detail": ["boolean"],
+        "subset_cols": [None, list],
+        "filter_rows": [None, dict],
+    },
+    prefer_skip_nested_validation=True,
+)
+def load_mimic_iv_notes(
+    note_path: Union[str, Path],
     subset: Literal["radiology", "discharge"] = "radiology",
     include_detail: bool = False,
-    keep_cols: Optional[Tuple[str, ...]] = (
-        "note_id",
-        "subject_id",
-        "hadm_id",
-        "note_type",
-        "note_seq",
-        "charttime",
-        "storetime",
-        "text",
-    ),
+    subset_cols: Optional[List[str]] = ["hadm_id", "note_type", "note_seq", "charttime", "storetime", "text"],
+    filter_rows: Optional[Dict[str, Union[Sequence, pd.Index]]] = None,
 ) -> pd.DataFrame:
     """
-    Load free-text clinical notes.
+    Load de-identified free-text clinical notes for a selected MIMIC-IV subset and
+    optionally merge the corresponding detail CSV.
 
-    Parameters
-    ----------
-    base_note_path : str
-        Folder that contains the 4 CSVs (radiology.csv, radiology_detail.csv, discharge.csv, discharge_detail.csv).
-    subset : {'radiology','discharge'}
-        Which note family to load.
-    include_detail : bool
-        If True, left-join the corresponding *_detail.csv on ['note_id','subject_id'] and add detail columns.
-    keep_cols : tuple of str | None
-        Columns to keep from the main notes CSV. If None, keep all columns.
+    High-level steps:
+    - Validate the input directory exists; resolve ``note_path`` to ``Path``.
+    - Load ``<subset>.csv`` via ``read_tabular`` with ``subset_cols`` plus required IDs; apply ``filter_rows`` when provided.
+    - Ensure required ID columns (``note_id``, ``subject_id``) are present.
+    - When ``include_detail`` is True, load ``<subset>_detail.csv`` (also applying ``filter_rows``), validate IDs, and left‑merge on IDs.
+    - If ``text`` exists, ``str.strip`` and drop empty rows; otherwise log a warning.
+    - Return the resulting ``pd.DataFrame``.
 
-    Returns
-    -------
-    pd.DataFrame
-        Notes DataFrame. If include_detail=True, extra columns from *_detail are merged (field_name, field_value, field_ordinal).
+    Args:
+        note_path (Union[str, Path]): Directory containing the notes CSV files
+            (for example: ``.../mimic-iv-note-.../note``).
+        subset (Literal['radiology', 'discharge']): Which note subset to load. Default: ``'radiology'``.
+        include_detail (bool): If True, left-join ``<subset>_detail.csv`` on ``['note_id', 'subject_id']``.
+            Default: False.
+        subset_cols (Optional[List[str]]): Columns to load from the main notes CSV in addition to the
+            required ID columns. Defaults to a small set including ``'text'``.
+        filter_rows (dict, optional): A dictionary to filter rows in the DataFrame.
+            Keys are column names and values are the values to filter by. Default: None.
+
+    Returns:
+        pd.DataFrame: Notes for the requested subset. When ``text`` exists, values are trimmed and
+        empty rows removed; when ``include_detail=True``, columns from the detail CSV may be present.
+
+    Raises:
+        FileNotFoundError: If ``note_path`` or the main CSV (``<subset>.csv``) is missing, or if
+            ``include_detail=True`` and ``<subset>_detail.csv`` is missing.
+        KeyError: If the required ID columns ``['note_id', 'subject_id']`` are absent from the main
+            or (when requested) detail CSV.
+
+    Examples:
+        >>> from mmai25_hackathon.load_data.text import load_mimic_iv_notes
+        >>> base = "MMAI25Hackathon/mimic-iv/mimic-iv-note-deidentified-free-text-clinical-notes-2.2/note"
+        >>> df = load_mimic_iv_notes(base, subset="radiology", include_detail=True)
+        >>> df.head()[["note_id", "subject_id", "note_type", "text"]]
+           note_id  subject_id  hadm_id note_type                                               text
+        0        1         101        1        DS  EXAMINATION: CHEST (PA AND LAT)INDICATION: ___...
+        1        2         101        2        DS  EXAMINATION: LIVER OR GALLBLADDER US (SINGLE O...
+        2        3         101        3        DS  INDICATION: ___ HCV cirrhosis c/b ascites, hiv...
+        3        4         102        4        DS  EXAMINATION: Ultrasound-guided paracentesis.IN...
+        4        5         102        5        DS  EXAMINATION: Ultrasound-guided paracentesis.IN...
     """
-    base = Path(base_note_path)
-    if not base.exists():
-        raise FileNotFoundError(f"Notes folder not found: {base}")
+    if isinstance(note_path, str):
+        note_path = Path(note_path)
 
-    main_name = f"{subset}.csv"
-    detail_name = f"{subset}_detail.csv"
+    if not note_path.exists():
+        raise FileNotFoundError(f"Notes folder not found: {note_path}")
 
-    main_csv = base / main_name
-    detail_csv = base / detail_name
+    subset_path = note_path / f"{subset}.csv"
 
-    if not main_csv.exists():
-        raise FileNotFoundError(f"Missing main notes CSV: {main_csv}")
+    if not subset_path.exists():
+        raise FileNotFoundError(f"Missing main notes CSV: {subset_path}")
 
-    df = pd.read_csv(main_csv)
+    logger = logging.getLogger(f"{__name__}.load_mimic_iv_notes")
+    logger.info("Loading notes from: %s", subset_path)
+    df_notes = read_tabular(subset_path, subset_cols=subset_cols, index_cols=REQUIRED_ID_COLS, filter_rows=filter_rows)
+    logger.info("Loaded %d notes from: %s", len(df_notes), subset_path)
 
-    # Ensure required ID columns exist
-    required_ids = {"note_id", "subject_id"}
-    if not required_ids.issubset(set(df.columns)):
-        raise KeyError(f"{main_name} must contain columns: {required_ids}")
+    id_cols_available = df_notes.columns.intersection(REQUIRED_ID_COLS).to_list()
+    if len(id_cols_available) < len(REQUIRED_ID_COLS):
+        raise KeyError(f"{subset_path} must contain columns: {REQUIRED_ID_COLS}. Found: {id_cols_available}")
 
-    # Keep requested columns if provided and present
-    if keep_cols is not None:
-        cols_present = [c for c in keep_cols if c in df.columns]
-        # Guarantee IDs stay even if not in keep_cols
-        for col in ["note_id", "subject_id"]:
-            if col not in cols_present and col in df.columns:
-                cols_present.insert(0, col)
-        df = df[cols_present].copy()
+    detail_path = note_path / f"{subset}_detail.csv"
+    if include_detail and not detail_path.exists():
+        raise FileNotFoundError(f"Missing detail notes CSV: {detail_path}")
 
-    # Optionally join detail
     if include_detail:
-        if not detail_csv.exists():
-            raise FileNotFoundError(f"Requested detail join but missing: {detail_csv}")
-        det = pd.read_csv(detail_csv)
-        # minimal check
-        if not required_ids.issubset(set(det.columns)):
-            raise KeyError(f"{detail_name} must contain columns: {required_ids}")
-        # Typical detail columns: field_name, field_value, field_ordinal
-        df = df.merge(det, how="left", on=["note_id", "subject_id"])
+        logger.info("Including detail from: %s", detail_path)
+        df_detail = read_tabular(detail_path, index_cols=REQUIRED_ID_COLS, filter_rows=filter_rows)
+        logger.info("Loaded %d detail rows from: %s", len(df_detail), detail_path)
+        id_cols_available = df_detail.columns.intersection(REQUIRED_ID_COLS).to_list()
+        if len(id_cols_available) < len(REQUIRED_ID_COLS):
+            raise KeyError(f"{detail_path} must contain columns: {REQUIRED_ID_COLS}. Found: {id_cols_available}")
+        logger.info("Merging detail into main notes on: %s", REQUIRED_ID_COLS)
+        df_notes = merge_multiple_dataframes((df_notes, df_detail), ("notes", "detail"), REQUIRED_ID_COLS, "left")
+        # Unpack df_notes from list of (paired_keys, df_notes)
+        df_notes = df_notes[0]
+        _, df_notes = df_notes
 
-    # Report simple stats
-    total = len(df)
-    has_text = "text" in df.columns
-    if has_text:
-        nonempty = (df["text"].astype(str).str.strip() != "").sum()
-        print(f"Loaded {total} {subset} notes ({nonempty} with non-empty text).")
+    text_included = "text" in df_notes.columns
+    if text_included:
+        df_notes["text"] = df_notes["text"].astype(str).str.strip()
+        available_texts = df_notes["text"] != ""
+        df_notes = df_notes[available_texts].copy()
+        logger.info("After filtering, %d notes have non-empty text.", len(df_notes))
     else:
-        print(f"Loaded {total} {subset} note rows (no 'text' column in selection).")
+        logger.warning("The loaded notes do not include a 'text' column.")
 
-    return df
+    return df_notes
 
 
-# -----------------------------
-# 2) Fetch text for a given note_id
-# -----------------------------
-def load_text_note(df: pd.DataFrame, note_id: int, return_meta: bool = False):
+@validate_params({"note": [pd.Series], "include_metadata": ["boolean"]}, prefer_skip_nested_validation=True)
+def extract_text_from_note(note: pd.Series, include_metadata: bool = False) -> Union[str, Tuple[str, Dict[str, Any]]]:
     """
-    Retrieve the free-text for a given note_id from a DataFrame returned by get_text_notes().
+    Extracts the text from a note Series, optionally returning metadata.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        DataFrame returned by get_text_notes().
-    note_id : int
-        Note identifier to look up.
-    return_meta : bool
-        If True, return (text, row_dict). Otherwise return text only.
+    High-level steps:
+    - Validate that the input Series contains a ``'text'`` field; otherwise, raise ``KeyError``.
+    - When ``include_metadata`` is False, return only the note text.
+    - When ``include_metadata`` is True, return a tuple of ``(text, metadata_dict)`` where
+      ``metadata_dict`` is the note’s fields excluding ``'text'``.
 
-    Returns
-    -------
-    text : str | (str, dict)
-        The note text; optionally with the note's metadata as a dictionary.
+    Args:
+        note (pd.Series): A pandas Series representing a note, expected to contain a 'text' column.
+        include_metadata (bool): If True, return a tuple of (text, metadata_dict). Default is False.
+
+    Returns:
+        Union[str, Tuple[str, Dict[str, Any]]]: The note text; optionally with the note's metadata as a dictionary.
+
+    Raises:
+        KeyError: If the 'text' column is not present in the note Series.
+
+    Examples:
+        >>> note = pd.Series(
+        ...     {"note_id": 1, "subject_id": 101, "text": "Patient is stable.", "note_type": "Discharge summary"}
+        ... )
+        >>> extract_text_from_note(note)
+        'Patient is stable.'
+        >>> extract_text_from_note(note, include_metadata=True)
+        ('Patient is stable.', {'note_id': 1, 'subject_id': 101, 'note_type': 'Discharge summary'})
     """
-    if "note_id" not in df.columns:
-        raise KeyError("DataFrame must contain 'note_id' column.")
-    rows = df[df["note_id"] == note_id]
-    if rows.empty:
-        raise KeyError(f"note_id {note_id} not found.")
+    if "text" not in note:
+        raise KeyError("The note does not include a 'text' column.")
 
-    row = rows.iloc[0]
-    if "text" not in df.columns:
-        raise KeyError("The DataFrame does not include a 'text' column. Re-load with keep_cols including 'text'.")
-    txt = str(row["text"])
-    if return_meta:
-        meta = row.to_dict()
-        return txt, meta
-    return txt
+    logger = logging.getLogger(f"{__name__}.extract_text_from_note")
+    logger.info("Extracting text from note with ID: %s", note.get("note_id", "unknown"))
+
+    text = note["text"]
+    if not include_metadata:
+        return text
+
+    logger.info("Including metadata in the output.")
+
+    metadata = note.drop("text").to_dict()
+    return text, metadata
 
 
-# ---------
-# Example
-# ---------
 if __name__ == "__main__":
-    # Radiology notes
-    radi_df = get_text_notes(NOTE_PATH, subset="radiology", include_detail=False)
-    print(radi_df.head(2))
+    import argparse
 
-    if not radi_df.empty:
-        sample_text = load_text_note(radi_df, note_id=int(radi_df.iloc[0]["note_id"]))
-        print("Radiology sample text (truncated):", sample_text[:200], "...")
+    # Example script:
+    # python -m mmai25_hackathon.load_data.text --data-path mimic-iv/mimic-iv-note-deidentified-free-text-clinical-notes-2.2/note --subset radiology --note-id 1
+    parser = argparse.ArgumentParser(description="Load MIMIC-IV free-text clinical notes.")
+    parser.add_argument(
+        "--data-path",
+        type=str,
+        help="Path to the MIMIC-IV notes directory (containing CSV files).",
+        default="MMAI25Hackathon/mimic-iv/mimic-iv-note-deidentified-free-text-clinical-notes-2.2/note",
+    )
+    parser.add_argument(
+        "--subset",
+        type=str,
+        choices=["radiology", "discharge"],
+        help="Which note subset to load (radiology or discharge).",
+        default="radiology",
+    )
+    parser.add_argument("--note-id", type=int, help="The note_id of the note to retrieve.", default=1)
+    args = parser.parse_args()
 
-    # Discharge notes
-    disc_df = get_text_notes(NOTE_PATH, subset="discharge", include_detail=True)  # include detail join
-    print(disc_df.head(2))
+    print(f"Loading {args.subset} notes from: {args.data_path}")
+    data = load_mimic_iv_notes(args.data_path, subset=args.subset, include_detail=True)
+    print(data.head()[["note_id", "subject_id", "hadm_id", "note_type", "text"]])
+    print()
 
-    if not disc_df.empty:
-        sample_text = load_text_note(disc_df, note_id=int(disc_df.iloc[0]["note_id"]))
-        print("Discharge sample text (truncated):", sample_text[:200], "...")
+    print(f"Retrieving text for note_id={args.note_id}")
+    try:
+        text, metadata = extract_text_from_note(
+            data.loc[data["note_id"] == args.note_id].squeeze(), include_metadata=True
+        )
+        print("Note text:")
+        print(text)
+        print("Metadata:")
+        print(metadata)
+    except KeyError as e:
+        print(e)

@@ -7,26 +7,34 @@ can also be combined to obtain multimodal datasets.
 We provided two base classes, but feel free to modify them as needed.
 
 Classes:
-    - BaseDataset: Template for custom datasets, supports multimodal aggregation.
-    - BaseDataLoader: Alias for torch_geometric.data.DataLoader for graph/non-graph batching.
+    BaseDataset: Template for custom datasets, supports multimodal aggregation.
+    BaseDataLoader: Template for custom dataloaders based on torch_geometric.data.DataLoader for graph/non-graph batching.
+    BaseSampler: Template for custom samplers, e.g., for multimodal sampling.
 """
 
-from torch.utils.data import Dataset
-from torch_geometric.data import DataLoader as PyGDataLoader
+from torch.utils.data import Dataset, Sampler
+from torch_geometric.data import DataLoader
+
+__all__ = ["BaseDataset", "BaseDataLoader", "BaseSampler"]
 
 
 class BaseDataset(Dataset):
     """
-    Base dataset class for creating custom datasets.
+    Template base class for building datasets.
 
-    The arguments and methods defined here can be customized as needed.
-
-    The goal is to have easy to extend dataset class for various modalities that
-    can also be combined to obtain multimodal datasets
+    Subclasses must implement `__len__` and `__getitem__`. Optionally override `extra_repr()`
+    and `__add__()` (for multimodal aggregation) if needed. `prepare_data()` can be used
+    as a class method to handle data downloading, preprocessing, and splitting if necessary.
 
     Args:
         *args: Positional arguments for dataset initialization.
         **kwargs: Keyword arguments for dataset initialization.
+
+    Initial Idea:
+        Support composing modality-specific datasets via the `+` operator, e.g.,
+        `mm_ds = ecg_ds + image_ds [+ text_ds]`. Subclasses implementing `__add__`
+        should align samples (by index/ID) and return a combined dataset.
+        Note: This is not a strict requirement, just a starting idea you can adapt or improve.
     """
 
     def __init__(self, *args, **kwargs):
@@ -51,41 +59,75 @@ class BaseDataset(Dataset):
 
     def __add__(self, other):
         """
-        Aggregate data with heterogenous modalities.
+        Combine with another dataset.
 
-        Note:
-            This is an optional idea that we imagined, but feel free to ignore it
-            if there are any better ways you may thought of to better integrate different modalities.
+        Override in subclasses to implement multimodal aggregation.
 
-        For example, we may have:
-        ```python
-        dataset1 = ECGDataset(...)
-        dataset2 = ImageDataset(...)
-        ...
-        datasetN = TextDataset(...)
-        ```
+        Args:
+            other: Another dataset to combine with this one.
 
-        One way we imagine to combine them is by using the `+` operator,
-        such that all we need to do is:
-        ```python
-        multimodal_dataset = dataset1 + dataset2 + ... + datasetN
-        # If we only have dataset1 and datasetN, we can simply do
-        bimodal_dataset = dataset1 + datasetN
-        ```
+        Initial Idea:
+            Use `__add__` to align and merge heterogeneous modalities into a single
+            dataset, keeping shared IDs synchronized.
+            Note: This is not mandatory; treat it as a sketch you can refine or replace.
         """
         raise NotImplementedError("Subclasses may implement __add__ method if needed.")
 
+    @classmethod
+    def prepare_data(cls, *args, **kwargs):
+        """
+        Prepare data for the dataset. Possible use case:
+        1. Downloading data from a remote source.
+        2. Preprocessing raw data into a format suitable for the dataset.
+        3. Any other setup tasks required before the dataset can be used. An example
+            could be dataset subsetting to train/val/test splits.
+        4. Returns the dataset object given the prepared data and available splits.
 
-class BaseDataLoader(PyGDataLoader):
+        You may skip this method if you feel that it is not necessary for your ideal use case.
+
+        Args:
+            *args: Positional arguments for data preparation.
+            **kwargs: Keyword arguments for data preparation.
+
+        Returns:
+            Union[BaseDataset, Dict[str, BaseDataset]]: The prepared dataset or a dictionary
+            of datasets for different splits (e.g., train, val, test).
+        """
+        raise NotImplementedError("Subclasses may implement prepare_data class method if needed.")
+
+
+class BaseDataLoader(DataLoader):
     """
-    A base dataloader directly inheriting from `torch_geometric.data.DataLoader` without any
-    modification. This is to ensure that both graph and non-graph data can be handled seamlessly.
+    DataLoader for graph and non-graph data.
+
+    Directly inherits from `torch_geometric.data.DataLoader`. Use it like
+    `torch.utils.data.DataLoader`.
 
     Args:
-        dataset (BaseDataset): The dataset from which to load the data.
-        batch_size (int, optional): How many samples per batch to load. Default: 1
-        shuffle (bool, optional): If set to True, the data will be reshuffled at every epoch. Default: False
-        follow_batch (List[str], optional): Creates assignment batch vectors for each key in the list. Default: None
-        exclude_keys (List[str], optional): Will exclude each key in the list. Default: None
-        **kwargs (optional): Additional arguments of torch.utils.data.DataLoader.
+        dataset (BaseDataset): The dataset from which to load data.
+        batch_size (int): How many samples per batch to load. Default: 1.
+        shuffle (bool): Whether to reshuffle the data at every epoch. Default: False.
+        follow_batch (list): Creates assignment batch vectors for each key in the list. Default: None.
+        exclude_keys (list): Keys to exclude. Default: None.
+        **kwargs: Additional arguments forwarded to `torch.utils.data.DataLoader`.
+
+    Initial Idea:
+        A future `MultimodalDataLoader` can accept a tuple of modality datasets and yield
+        batches like `{"ecg": ..., "image": ...}`. Missing modalities are simply absent
+        in that batch, keeping iteration simple and robust.
+        Note: This is not a hard requirement. Consider it a future-facing idea you can evolve.
+    """
+
+
+class BaseSampler(Sampler):
+    """
+    Base sampler to extend for custom sampling strategies.
+
+    Args:
+        data_source (Sized): The dataset to sample from.
+
+    Initial Idea:
+        A `MultimodalSampler` can coordinate indices across modality datasets to ensure
+        balanced or paired sampling before passing to `BaseDataLoader`.
+        Note: This is optional and meant as a design hint, not a constraint.
     """
