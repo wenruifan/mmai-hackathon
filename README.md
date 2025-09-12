@@ -49,7 +49,7 @@ pip install -e .[dev]
 
 By default, the dependencies declared in `pyproject.toml` are sufficient (they include `torch` and `torch-geometric`).
 
-Only if you enable a data‑loading extension that requires extra PyG ops (e.g., `torch-scatter`, `torch-sparse`, `torch-cluster`, `torch-spline-conv`), you do need to install those extras. The snippet below detects your Torch/CUDA and prints the correct wheel index to use for these optional packages:
+Only if you enable a data‑loading extension that requires extra PyG ops (e.g., `torch-scatter`, `torch-sparse`, `torch-cluster`, `torch-spline-conv`), do you need to install those extras. The snippet below detects your Torch/CUDA and prints the correct wheel index to use for these optional packages:
 
 ```bash
 # Inspect Torch / CUDA (optional)
