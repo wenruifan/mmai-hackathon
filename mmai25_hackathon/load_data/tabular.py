@@ -115,7 +115,10 @@ def read_tabular(
         raise ValueError(f"No valid index_cols found in DataFrame for: {index_cols}")
 
     # Reorder the dataframe to have index_cols first then subset_cols
-    logger.info("Final selected columns: %s", selected_index_cols.to_list() + selected_subset_cols.to_list())
+    logger.info(
+        "Final selected columns: %s",
+        selected_index_cols.to_list() + selected_subset_cols.to_list(),
+    )
     selected_cols = selected_index_cols.union(selected_subset_cols, sort=False)
 
     df = df if len(selected_cols) == 0 else df[df.columns.intersection(selected_cols, sort=False)]
@@ -124,7 +127,11 @@ def read_tabular(
     logger.info("Applying row filters: %s", filter_rows)
     for col, valid_vals in (filter_rows or {}).items():
         if col in df.columns:
-            logger.info("Filtering rows on column '%s' with %d valid values.", col, len(valid_vals))
+            logger.info(
+                "Filtering rows on column '%s' with %d valid values.",
+                col,
+                len(valid_vals),
+            )
             df = df[df[col].isin(valid_vals)]
 
     return df
@@ -281,9 +288,16 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Read and aggregate tabular CSV files.")
     parser.add_argument(
-        "--data-path", help="Data path for the CSV files.", default="MMAI25Hackathon/mimic-iv/mimic-iv-3.1"
+        "--data-path",
+        help="Data path for the CSV files.",
+        default="MMAI25Hackathon/mimic-iv/mimic-iv-3.1",
     )
-    parser.add_argument("--index-cols", nargs="+", default=["subject_id", "hadm_id"], help="Columns to use as index.")
+    parser.add_argument(
+        "--index-cols",
+        nargs="+",
+        default=["subject_id", "hadm_id"],
+        help="Columns to use as index.",
+    )
     parser.add_argument("--subset-cols", nargs="+", default=["language"], help="Columns to subset.")
     parser.add_argument("--join", default="outer", help="Join type for merging DataFrames.")
     args = parser.parse_args()
@@ -293,7 +307,13 @@ if __name__ == "__main__":
 
     # Load multiple dataframes
     dfs = [
-        read_tabular(f, index_cols=args.index_cols, subset_cols=args.subset_cols, raise_errors=False) for f in csv_files
+        read_tabular(
+            f,
+            index_cols=args.index_cols,
+            subset_cols=args.subset_cols,
+            raise_errors=False,
+        )
+        for f in csv_files
     ]
     dfs_name = [f.stem for f in csv_files]
 
