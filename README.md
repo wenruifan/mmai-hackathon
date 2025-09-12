@@ -16,126 +16,85 @@ This repository provides the base source code for the MultimodalAI'25 workshop H
 
 ## Installation
 
-### Prerequisite
+The steps below are linear and work with `venv`, `conda`, or `uv`. Pick one method and follow it end‑to‑end.
 
-Before installing other dependencies, install pykale with all optional dependencies (full extras) from git:
-
-```bash
-pip install "git+https://github.com/pykale/pykale@main[full]"
-```
-
-You can set up your development environment using one of the following methods: `venv`, `conda`, or `uv`.
-
-### Main Installation Steps
-
-1. **Clone the repository:**
+### 1) Clone and create an environment
 
 ```bash
 git clone https://github.com/pykale/mmai-hackathon.git
 cd mmai-hackathon
+
+# conda (recommended)
+conda create -n mmai-hackathon python=3.11 -y
+conda activate mmai-hackathon
+
+# venv (alternative)
+# python3 -m venv .venv && source .venv/bin/activate
+
+# uv (alternative)
+# uv venv .venv && source .venv/bin/activate
 ```
 
-2. **Set up a virtual environment (recommended):**
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-3. **Install dependencies:**
+### 2) Install dependencies (with tests)
 
 ```bash
 pip install --upgrade pip
-# Install pykale with all optional dependencies (full extras) from git first
-pip install "git+https://github.com/pykale/pykale@main[full]"
-pip install -e .
+
+# Recommended for development and testing (includes pytest, coverage, linters)
+pip install -e .[dev]
+
+# If you only need runtime dependencies (not recommended for contributors):
+# pip install -e .
 ```
 
-#### Installing torch-geometric (pyg) and its extensions
-
-To install torch-geometric (`pyg`) and its required extensions (such as `torch-scatter`, `torch-sparse`, etc.), use the following command with the appropriate URL for your PyTorch and CUDA version:
+If you use features that depend on PyG (graph loaders, SMILES), install torch‑geometric wheels that match your Torch/CUDA.
+The snippet below detects your installed Torch and CUDA, constructs the correct find‑links URL, and installs the wheels:
 
 ```bash
-pip install torch-geometric torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
+# Inspect Torch / CUDA (optional)
+python - <<'PYINFO'
+import torch
+print('Torch:', torch.__version__)
+print('CUDA version:', torch.version.cuda)
+print('CUDA available:', torch.cuda.is_available())
+PYINFO
+
+# Install PyG wheels matching your Torch/CUDA
+PYG_INDEX=$(python - <<'PYG'
+import torch
+torch_ver = torch.__version__.split('+')[0]
+cuda = torch.version.cuda
+if cuda:
+    cu_tag = f"cu{cuda.replace('.', '')}"
+else:
+    cu_tag = 'cpu'
+print(f"https://data.pyg.org/whl/torch-{torch_ver}+{cu_tag}.html")
+PYG
+)
+echo "Using PyG wheel index: $PYG_INDEX"
+pip install torch-geometric torch-scatter torch-sparse torch-cluster torch-spline-conv -f "$PYG_INDEX"
 ```
 
-Replace the URL with the one matching your PyTorch and CUDA version. For more details and the latest URLs, see the official torch-geometric installation guide: https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html
+More details: https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html
 
----
+### 3) (Optional) Pre‑commit hooks
 
-You can also use the following environment-specific guides:
+```bash
+pre-commit install
+```
 
-### Using conda (Anaconda/Miniconda)
+### 4) Run tests
 
-1. **Create and activate a conda environment:**
-
-   ```bash
-   conda create -n mmai-hackathon python=3.10
-   conda activate mmai-hackathon
-   ```
-
-2. **Install dependencies:**
-
-   ```bash
-   pip install -e .
-   ```
-
-### Using uv (Ultra-fast Python package manager)
-
-Assuming `uv` is already installed:
-
-1. **Create and activate a uv virtual environment:**
-
-   ```bash
-   uv venv .venv
-   source .venv/bin/activate
-   ```
-
-2. **Install dependencies:**
-
-   ```bash
-   uv pip install -e .
-   ```
-
----
-
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/pykale/mmai-hackathon.git
-   cd mmai-hackathon
-   ```
-
-2. **Set up a virtual environment (recommended):**
-
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
-
-3. **Install dependencies:**
-
-   ```bash
-   pip install --upgrade pip
-   pip install -e .
-   ```
-
-4. **(Optional) Install pre-commit hooks:**
-
-   ```bash
-   pre-commit install
-   ```
-
-5. **Run tests:**
-
-   ```bash
-   pytest
-   ```
+```bash
+pytest
+```
 
 ## Notes
 
 - The project restricts Python versions to 3.10–3.12 as specified in `.python-version` and `pyproject.toml`.
 - For more information about the dependencies, see `pyproject.toml`.
+
+Tip: Integration tests optionally use real data. In CI, datasets are downloaded with `python -m tests.dropbox_download "/MMAI25Hackathon" "MMAI25Hackathon" --unzip` when a Dropbox token is configured.
 
 ## Authors
 
