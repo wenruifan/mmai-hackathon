@@ -52,11 +52,13 @@ def load_mimic_iv_notes(
     Load de-identified free-text clinical notes for a selected MIMIC-IV subset and
     optionally merge the corresponding detail CSV.
 
-    Validates ``note_path``, loads ``<subset>.csv`` (e.g., ``radiology.csv``) via ``read_tabular``
-    selecting ``subset_cols`` plus the required IDs (``note_id``, ``subject_id``), and when
-    ``include_detail=True`` merges ``<subset>_detail.csv`` on the same IDs. If a ``text`` column is
-    present, trims whitespace and drops rows with empty strings; otherwise, logs a warning and returns
-    the unfiltered DataFrame.
+    High-level steps:
+    - Validate the input directory exists; resolve ``note_path`` to ``Path``.
+    - Load ``<subset>.csv`` via ``read_tabular`` with ``subset_cols`` plus required IDs.
+    - Ensure required ID columns (``note_id``, ``subject_id``) are present.
+    - When ``include_detail`` is True, load ``<subset>_detail.csv``, validate IDs, and left-merge on IDs.
+    - If ``text`` exists, ``str.strip`` and drop empty rows; otherwise log a warning.
+    - Return the resulting ``pd.DataFrame``.
 
     Args:
         note_path (Union[str, Path]): Directory containing the notes CSV files
