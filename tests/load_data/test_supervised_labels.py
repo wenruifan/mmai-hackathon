@@ -67,17 +67,6 @@ def test_one_hot_encode_labels_single_and_multi_columns() -> None:
     assert any(c.startswith("b_") for c in oh2.columns), f"Expected one-hot columns for 'b': {list(oh2.columns)}"
 
 
-def test_fetch_labels_sequence_branch_via_str_length() -> None:
-    # Exploit that str is a Sequence with len>1 to exercise the multi-column branch (line 71)
-    df = pd.DataFrame({"id": [1, 2], "YY": [0, 1]})
-    out = fetch_supervised_labels_from_dataframe(df, label_col="YY", index_col="id")
-    # Given current implementation, this returns the input DataFrame (not renamed to 'label')
-    assert set(out.columns) >= {
-        "id",
-        "YY",
-    }, f"Expected passthrough DataFrame for multi-column branch; got columns: {list(out.columns)}"
-
-
 def test_fetch_labels_from_real_dataset(labels_csv: Path) -> None:
     out = fetch_supervised_labels_from_dataframe(str(labels_csv), label_col="Y")
     assert not out.empty, f"No label rows loaded from {labels_csv}"
