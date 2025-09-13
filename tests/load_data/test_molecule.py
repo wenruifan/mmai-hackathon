@@ -2,7 +2,7 @@
 
 This suite validates the public APIs in ``mmai25_hackathon.load_data.molecule``:
 
-- ``fetch_smiles_from_dataframe(df_or_path, ...)``: extracts a SMILES column from a DataFrame or CSV path,
+- ``load_smiles_from_dataframe(df_or_path, ...)``: extracts a SMILES column from a DataFrame or CSV path,
   optionally setting an index, and returns a single-column DataFrame named ``smiles``.
 - ``smiles_to_graph(smiles, ...)``: converts a SMILES string to a PyG ``Data`` graph; flags forwarded.
 
@@ -22,7 +22,7 @@ import pytest
 pytest.importorskip("torch_geometric")
 from torch_geometric.data import Data  # noqa: E402
 
-from mmai25_hackathon.load_data.molecule import fetch_smiles_from_dataframe, smiles_to_graph  # noqa: E402
+from mmai25_hackathon.load_data.molecule import load_smiles_from_dataframe, smiles_to_graph  # noqa: E402
 
 # Optional real dataset path for integration-style checks
 MOLECULE_DATASET_CSV = Path.cwd() / "MMAI25Hackathon" / "molecule-protein-interaction" / "dataset.csv"
@@ -35,23 +35,23 @@ def molecule_csv() -> Path:
     return MOLECULE_DATASET_CSV
 
 
-def test_fetch_smiles_from_dataframe_and_csv(tmp_path: Path) -> None:
+def test_load_smiles_from_dataframe_and_csv(tmp_path: Path) -> None:
     df = pd.DataFrame({"id": [1, 2], "SMILES": ["CCO", "C1=CC=CC=C1"], "extra": [0, 1]})
     csv = tmp_path / "molecules.csv"
     csv.write_text(df.to_csv(index=False))
 
     # From DataFrame with index
-    out_df = fetch_smiles_from_dataframe(df, smiles_col="SMILES", index_col="id")
+    out_df = load_smiles_from_dataframe(df, smiles_col="SMILES", index_col="id")
     assert list(out_df.columns) == ["id", "smiles"], f"Expected columns ['id', 'smiles'], got {list(out_df.columns)}"
     assert out_df.shape[0] == 2, f"Unexpected number of rows: {out_df.shape}"
 
     # From CSV
-    out_csv = fetch_smiles_from_dataframe(str(csv), smiles_col="SMILES")
+    out_csv = load_smiles_from_dataframe(str(csv), smiles_col="SMILES")
     assert list(out_csv.columns) == ["smiles"], f"Expected columns ['smiles'], got {list(out_csv.columns)}"
 
     # Missing column error
     with pytest.raises(ValueError):
-        fetch_smiles_from_dataframe(df, smiles_col="missing")
+        load_smiles_from_dataframe(df, smiles_col="missing")
 
 
 def test_smiles_to_graph_monkeypatched(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -71,17 +71,17 @@ def test_smiles_to_graph_monkeypatched(monkeypatch: pytest.MonkeyPatch) -> None:
     ), f"Flags not forwarded correctly: with_h={getattr(g, 'with_h', None)}, kek={getattr(g, 'kek', None)}"
 
 
-def test_fetch_smiles_from_real_dataset(molecule_csv: Path) -> None:
-    out = fetch_smiles_from_dataframe(str(molecule_csv), smiles_col="SMILES")
+def test_load_smiles_from_real_dataset(molecule_csv: Path) -> None:
+    out = load_smiles_from_dataframe(str(molecule_csv), smiles_col="SMILES")
     assert not out.empty, f"No SMILES rows loaded from {molecule_csv}"
     assert list(out.columns) == ["smiles"], f"Expected single column 'smiles', got {list(out.columns)}"
     first = out.iloc[0]["smiles"]
     assert isinstance(first, str) and len(first) > 0, f"First SMILES is invalid: {first!r}"
 
 
-def test_fetch_smiles_dataframe_filter_rows() -> None:
+def test_load_smiles_dataframe_filter_rows() -> None:
     df = pd.DataFrame({"id": [1, 2, 3], "SMILES": ["CCO", "CCC", "CCN"]})
-    out = fetch_smiles_from_dataframe(
+    out = load_smiles_from_dataframe(
         df,
         smiles_col="SMILES",
         index_col="id",

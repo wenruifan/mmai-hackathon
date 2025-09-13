@@ -1,8 +1,8 @@
-"""Tests for supervised labels utilities.
+"""Tests for labels utilities.
 
-This suite validates the public APIs in ``mmai25_hackathon.load_data.supervised_labels``:
+This suite validates the public APIs in ``mmai25_hackathon.load_data.labels``:
 
-- ``fetch_supervised_labels_from_dataframe(df_or_path, ...)``: extracts label column(s) from a DataFrame or CSV path,
+- ``load_labels_from_dataframe(df_or_path, ...)``: extracts label column(s) from a DataFrame or CSV path,
   optionally setting an index, and returns a DataFrame named ``label`` (single column) or original names (multi).
 - ``one_hot_encode_labels(labels, ...)``: one-hot encodes categorical label columns to ``float32`` dtypes.
 
@@ -19,8 +19,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mmai25_hackathon.load_data.supervised_labels import (
-    fetch_supervised_labels_from_dataframe,
+from mmai25_hackathon.load_data.labels import (
+    load_labels_from_dataframe,
     one_hot_encode_labels,
 )
 
@@ -35,20 +35,20 @@ def labels_csv() -> Path:
     return LABELS_DATASET_CSV
 
 
-def test_fetch_supervised_labels_single_column(tmp_path: Path) -> None:
+def test_load_labels_single_column(tmp_path: Path) -> None:
     df = pd.DataFrame({"id": [1, 2], "Y": [0, 1], "extra": ["a", "b"]})
     csv = tmp_path / "labels.csv"
     csv.write_text(df.to_csv(index=False))
 
-    out_df = fetch_supervised_labels_from_dataframe(df, label_col="Y", index_col="id")
+    out_df = load_labels_from_dataframe(df, label_col="Y", index_col="id")
     assert list(out_df.columns) == ["id", "label"], f"Expected columns ['id', 'label'], got {list(out_df.columns)}"
     assert out_df.shape[0] == 2, f"Unexpected number of rows: {out_df.shape}"
 
-    out_csv = fetch_supervised_labels_from_dataframe(str(csv), label_col="Y")
+    out_csv = load_labels_from_dataframe(str(csv), label_col="Y")
     assert list(out_csv.columns) == ["label"], f"Expected single column 'label', got {list(out_csv.columns)}"
 
     with pytest.raises(ValueError):
-        fetch_supervised_labels_from_dataframe(df, label_col="missing")
+        load_labels_from_dataframe(df, label_col="missing")
 
 
 def test_one_hot_encode_labels_single_and_multi_columns() -> None:
@@ -67,9 +67,9 @@ def test_one_hot_encode_labels_single_and_multi_columns() -> None:
     assert any(c.startswith("b_") for c in oh2.columns), f"Expected one-hot columns for 'b': {list(oh2.columns)}"
 
 
-def test_fetch_supervised_labels_dataframe_filter_rows() -> None:
+def test_load_labels_dataframe_filter_rows() -> None:
     df = pd.DataFrame({"id": [1, 2, 3], "Y": [0, 1, 0]})
-    out = fetch_supervised_labels_from_dataframe(
+    out = load_labels_from_dataframe(
         df,
         label_col="Y",
         index_col="id",
@@ -79,19 +79,19 @@ def test_fetch_supervised_labels_dataframe_filter_rows() -> None:
     assert set(out["id"].values) == {1, 3}, f"Unexpected remaining ids: {out['id'].tolist()}"
 
 
-def test_fetch_supervised_labels_with_filter_rows(tmp_path: Path) -> None:
+def test_load_labels_with_filter_rows(tmp_path: Path) -> None:
     # Create a small CSV with an ID column to filter on
     df = pd.DataFrame({"id": [1, 2, 3], "Y": [0, 1, 0]})
     csv = tmp_path / "labels.csv"
     csv.write_text(df.to_csv(index=False))
 
     # Apply a filter to keep only id==2; include index_col so filter can apply
-    out = fetch_supervised_labels_from_dataframe(str(csv), label_col="Y", index_col="id", filter_rows={"id": [2]})
+    out = load_labels_from_dataframe(str(csv), label_col="Y", index_col="id", filter_rows={"id": [2]})
     assert out.shape[0] == 1, f"Expected 1 row after filtering, got shape {out.shape}"
     assert 2 in out["id"].values, f"Expected remaining id to be 2, got {out['id'].tolist()}"
 
 
-def test_fetch_labels_from_real_dataset(labels_csv: Path) -> None:
-    out = fetch_supervised_labels_from_dataframe(str(labels_csv), label_col="Y")
+def test_load_labels_from_real_dataset(labels_csv: Path) -> None:
+    out = load_labels_from_dataframe(str(labels_csv), label_col="Y")
     assert not out.empty, f"No label rows loaded from {labels_csv}"
     assert list(out.columns) == ["label"], f"Expected single column 'label', got {list(out.columns)}"

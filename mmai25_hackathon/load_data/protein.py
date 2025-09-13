@@ -2,8 +2,8 @@
 Protein sequence loading and integer-encoding utilities.
 
 Functions:
-fetch_protein_sequences_from_dataframe(df, prot_seq_col, index_col=None)
-    Fetches protein sequences from a DataFrame or CSV (uses `read_tabular` if a path is given). Optionally sets an index
+load_protein_sequences_from_dataframe(df, prot_seq_col, index_col=None)
+    Loads protein sequences from a DataFrame or CSV (uses `read_tabular` if a path is given). Optionally sets an index
     and returns a one-column DataFrame named "protein_sequence" (index reset if `index_col` is None).
 
 protein_sequence_to_integer_encoding(sequence, max_length=1200)
@@ -26,7 +26,7 @@ from sklearn.utils._param_validation import Interval, validate_params
 
 from .tabular import read_tabular
 
-__all__ = ["fetch_protein_sequences_from_dataframe", "protein_sequence_to_integer_encoding"]
+__all__ = ["load_protein_sequences_from_dataframe", "protein_sequence_to_integer_encoding"]
 
 # Generate character set for protein sequences between A-Z (except J)
 CHARPROTSET = [chr(i) for i in range(ord("A"), ord("Z") + 1) if chr(i) != "J"]
@@ -38,14 +38,14 @@ CHARPROTSET = {letter: idx for idx, letter in enumerate(CHARPROTSET, 1)}
     {"df": [pd.DataFrame, str], "prot_seq_col": [str], "index_col": [None, str], "filter_rows": [None, dict]},
     prefer_skip_nested_validation=True,
 )
-def fetch_protein_sequences_from_dataframe(
+def load_protein_sequences_from_dataframe(
     df: Union[pd.DataFrame, str],
     prot_seq_col: str,
     index_col: str = None,
     filter_rows: Optional[Dict[str, Union[Sequence, pd.Index]]] = None,
 ) -> pd.DataFrame:
     """
-    Fetches protein sequences from a DataFrame or CSV file. Will read the CSV if a path is provided.
+    Loads protein sequences from a DataFrame or CSV file. Will read the CSV if a path is provided.
 
     High-level steps:
     - If `df` is a path, load via `read_tabular` selecting `prot_seq_col` and optional `index_col`; apply `filter_rows`.
@@ -70,7 +70,7 @@ def fetch_protein_sequences_from_dataframe(
         ...         "protein_sequence": ["MKTAYIAKQRQISFVKSH", "GAVLILLLV", "TTPSYVAFTDTER"],
         ...     }
         ... )
-        >>> sequences = fetch_protein_sequences_from_dataframe(df, prot_seq_col="protein_sequence", index_col="id")
+        >>> sequences = load_protein_sequences_from_dataframe(df, prot_seq_col="protein_sequence", index_col="id")
         >>> print(sequences)
             protein_sequence
         id
@@ -91,7 +91,7 @@ def fetch_protein_sequences_from_dataframe(
     if index_col is not None:
         df = df.set_index(index_col)
 
-    logger = logging.getLogger(f"{__name__}.fetch_protein_sequences_from_dataframe")
+    logger = logging.getLogger(f"{__name__}.load_protein_sequences_from_dataframe")
     logger.info("Fetched %d protein sequences from column '%s'.", len(df), prot_seq_col)
     return df[prot_seq_col].to_frame("protein_sequence").reset_index(drop=index_col is None)
 
@@ -151,7 +151,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Take from Peizhen's csv file for DrugBAN training
-    df = fetch_protein_sequences_from_dataframe(args.data_path, prot_seq_col="Protein")
+    df = load_protein_sequences_from_dataframe(args.data_path, prot_seq_col="Protein")
     for i, prot_seq in enumerate(df["protein_sequence"].head(5), 1):
         integer_encoding = protein_sequence_to_integer_encoding(prot_seq)
         print(i, integer_encoding)

@@ -1,9 +1,9 @@
 """
-Supervised labels loading and encoding utilities.
+Labels loading and encoding utilities.
 
 Functions:
-fetch_supervised_labels_from_dataframe(df, label_col, index_col=None)
-    Fetches labels from a DataFrame or CSV (uses `read_tabular` when a path is provided). Supports single- or multi-column
+load_labels_from_dataframe(df, label_col, index_col=None)
+    Loads labels from a DataFrame or CSV (uses `read_tabular` when a path is provided). Supports single- or multi-column
     labels for classification/regression. Optionally sets an index. Returns a DataFrame named "label" for a single column
     or the original column names for multiple columns.
 
@@ -12,7 +12,7 @@ one_hot_encode_labels(labels, columns="label")
     a `pd.DataFrame` with `float32` dtypes.
 
 Preview CLI:
-`python -m mmai25_hackathon.load_data.supervised_labels --data-path /path/to/labels.csv`
+`python -m mmai25_hackathon.load_data.labels --data-path /path/to/labels.csv`
 Reads the CSV (expects a label column named `Y` in this demo), prints the first five labels, then prints a preview of
 one-hot–encoded labels.
 """
@@ -25,7 +25,7 @@ from sklearn.utils._param_validation import validate_params
 
 from .tabular import read_tabular
 
-__all__ = ["fetch_supervised_labels_from_dataframe", "one_hot_encode_labels"]
+__all__ = ["load_labels_from_dataframe", "one_hot_encode_labels"]
 
 
 @validate_params(
@@ -37,14 +37,14 @@ __all__ = ["fetch_supervised_labels_from_dataframe", "one_hot_encode_labels"]
     },
     prefer_skip_nested_validation=True,
 )
-def fetch_supervised_labels_from_dataframe(
+def load_labels_from_dataframe(
     df: Union[pd.DataFrame, str],
     label_col: Union[str, Sequence[str]],
     index_col: str = None,
     filter_rows: Optional[Dict[str, Union[Sequence, pd.Index]]] = None,
 ) -> pd.DataFrame:
     """
-    Fetches supervision labels from a DataFrame or CSV file. Will read the CSV if a path is provided.
+    Loads supervision labels from a DataFrame or CSV file. Will read the CSV if a path is provided.
 
     High-level steps:
     - If `df` is a path, load via `read_tabular` selecting `label_col` and optional `index_col`; apply `filter_rows`.
@@ -68,7 +68,7 @@ def fetch_supervised_labels_from_dataframe(
         >>> df = pd.DataFrame(
         ...     {"id": [1, 2, 3], "feature1": [0.5, 0.6, 0.7], "feature2": [1.5, 1.6, 1.7], "label": [0, 1, 0]}
         ... )
-        >>> labels = fetch_supervised_labels_from_dataframe(df, label_col="label", index_col="id")
+        >>> labels = load_labels_from_dataframe(df, label_col="label", index_col="id")
         >>> print(labels)
             label
         id
@@ -131,7 +131,7 @@ def one_hot_encode_labels(labels: pd.DataFrame, columns: Union[Sequence[str], st
 if __name__ == "__main__":
     import argparse
 
-    # Example script: python -m mmai25_hackathon.load_data.supervised_labels --data-path MMAI25Hackathon/molecule-protein-interaction/dataset.csv
+    # Example script: python -m mmai25_hackathon.load_data.labels --data-path MMAI25Hackathon/molecule-protein-interaction/dataset.csv
     parser = argparse.ArgumentParser(description="Process supervision labels for regression/classification.")
     parser.add_argument(
         "--data-path",
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Take from Peizhen's csv file for DrugBAN training
-    df = fetch_supervised_labels_from_dataframe(args.data_path, label_col="Y")
+    df = load_labels_from_dataframe(args.data_path, label_col="Y")
     for i, label in enumerate(df["label"].head(5), 1):
         print(i, label)
 

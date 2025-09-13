@@ -2,7 +2,7 @@
 
 This suite validates the public APIs in ``mmai25_hackathon.load_data.protein``:
 
-- ``fetch_protein_sequences_from_dataframe(df_or_path, ...)``: extracts a protein sequence column from a DataFrame
+- ``load_protein_sequences_from_dataframe(df_or_path, ...)``: extracts a protein sequence column from a DataFrame
   or CSV path, optionally setting an index, and returns a single-column DataFrame named ``protein_sequence``.
 - ``protein_sequence_to_integer_encoding(sequence, ...)``: integer-encodes an amino-acid sequence to fixed length.
 
@@ -20,7 +20,7 @@ import pandas as pd
 import pytest
 
 from mmai25_hackathon.load_data.protein import (
-    fetch_protein_sequences_from_dataframe,
+    load_protein_sequences_from_dataframe,
     protein_sequence_to_integer_encoding,
 )
 
@@ -35,25 +35,25 @@ def protein_csv() -> Path:
     return PROTEIN_DATASET_CSV
 
 
-def test_fetch_protein_sequences_from_dataframe_and_csv(tmp_path: Path) -> None:
+def test_load_protein_sequences_from_dataframe_and_csv(tmp_path: Path) -> None:
     df = pd.DataFrame({"id": [1, 2], "Protein": ["MKTAYI", "GAVLIL"], "extra": [0, 1]})
     csv = tmp_path / "proteins.csv"
     csv.write_text(df.to_csv(index=False))
 
-    out_df = fetch_protein_sequences_from_dataframe(df, prot_seq_col="Protein", index_col="id")
+    out_df = load_protein_sequences_from_dataframe(df, prot_seq_col="Protein", index_col="id")
     assert list(out_df.columns) == [
         "id",
         "protein_sequence",
     ], f"Expected columns ['id', 'protein_sequence'], got {list(out_df.columns)}"
     assert out_df.shape[0] == 2, f"Unexpected number of rows: {out_df.shape}"
 
-    out_csv = fetch_protein_sequences_from_dataframe(str(csv), prot_seq_col="Protein")
+    out_csv = load_protein_sequences_from_dataframe(str(csv), prot_seq_col="Protein")
     assert list(out_csv.columns) == [
         "protein_sequence"
     ], f"Expected single column 'protein_sequence', got {list(out_csv.columns)}"
 
     with pytest.raises(ValueError):
-        fetch_protein_sequences_from_dataframe(df, prot_seq_col="missing")
+        load_protein_sequences_from_dataframe(df, prot_seq_col="missing")
 
 
 def test_protein_sequence_to_integer_encoding_properties() -> None:
@@ -68,8 +68,8 @@ def test_protein_sequence_to_integer_encoding_properties() -> None:
     assert (enc == 0).sum() >= 0, "Unknown characters should be encoded as 0"
 
 
-def test_fetch_proteins_from_real_dataset(protein_csv: Path) -> None:
-    out = fetch_protein_sequences_from_dataframe(str(protein_csv), prot_seq_col="Protein")
+def test_load_proteins_from_real_dataset(protein_csv: Path) -> None:
+    out = load_protein_sequences_from_dataframe(str(protein_csv), prot_seq_col="Protein")
     assert not out.empty, f"No Protein rows loaded from {protein_csv}"
     assert list(out.columns) == [
         "protein_sequence"
@@ -78,9 +78,9 @@ def test_fetch_proteins_from_real_dataset(protein_csv: Path) -> None:
     assert isinstance(first, str) and len(first) > 0, f"First protein sequence is invalid: {first!r}"
 
 
-def test_fetch_protein_sequences_dataframe_filter_rows() -> None:
+def test_load_protein_sequences_dataframe_filter_rows() -> None:
     df = pd.DataFrame({"id": [1, 2, 3], "Protein": ["MKT", "GAV", "TTT"]})
-    out = fetch_protein_sequences_from_dataframe(
+    out = load_protein_sequences_from_dataframe(
         df,
         prot_seq_col="Protein",
         index_col="id",

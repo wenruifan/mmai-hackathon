@@ -2,7 +2,7 @@
 Molecular (SMILES) loading and graph conversion utilities.
 
 Functions:
-fetch_smiles_from_dataframe(df, smiles_col, index_col=None)
+load_smiles_from_dataframe(df, smiles_col, index_col=None)
     Fetches SMILES strings from a DataFrame or CSV. Uses `read_tabular` when a path is provided. Optionally sets an index,
     and returns a one-column DataFrame named `"smiles"` (index reset if `index_col` is None).
 
@@ -27,14 +27,14 @@ from torch_geometric.utils.smiles import from_smiles
 
 from .tabular import read_tabular
 
-__all__ = ["fetch_smiles_from_dataframe", "smiles_to_graph"]
+__all__ = ["load_smiles_from_dataframe", "smiles_to_graph"]
 
 
 @validate_params(
     {"df": [pd.DataFrame, str], "smiles_col": [str], "index_col": [None, str], "filter_rows": [None, dict]},
     prefer_skip_nested_validation=True,
 )
-def fetch_smiles_from_dataframe(
+def load_smiles_from_dataframe(
     df: Union[pd.DataFrame, str],
     smiles_col: str,
     index_col: str = None,
@@ -66,7 +66,7 @@ def fetch_smiles_from_dataframe(
         ...         "smiles": ["CCO", "C1=CC=CC=C1", "CC(=O)O"],
         ...     }
         ... )
-        >>> smiles = fetch_smiles_from_dataframe(df, smiles_col="smiles", index_col="id")
+        >>> smiles = load_smiles_from_dataframe(df, smiles_col="smiles", index_col="id")
         >>> print(smiles)
             smiles
         id
@@ -84,7 +84,7 @@ def fetch_smiles_from_dataframe(
     if smiles_col not in df.columns:
         raise ValueError(f"Column '{smiles_col}' not found in DataFrame.")
 
-    logger = logging.getLogger(f"{__name__}.fetch_smiles_from_dataframe")
+    logger = logging.getLogger(f"{__name__}.load_smiles_from_dataframe")
 
     if index_col is not None:
         df = df.set_index(index_col)
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Take from Peizhen's csv file for DrugBAN training
-    df = fetch_smiles_from_dataframe(args.data_path, smiles_col="SMILES")
+    df = load_smiles_from_dataframe(args.data_path, smiles_col="SMILES")
     for i, smiles in enumerate(df["smiles"].head(5), 1):
         graph = smiles_to_graph(smiles)
         print(i, graph)
