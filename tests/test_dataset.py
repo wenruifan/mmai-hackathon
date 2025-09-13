@@ -12,8 +12,6 @@ Prerequisite
 Graph batching test requires ``torch`` and ``torch_geometric``; if unavailable, the test is skipped.
 """
 
-from __future__ import annotations
-
 import pytest
 
 from mmai25_hackathon.dataset import BaseDataLoader, BaseDataset, BaseSampler
