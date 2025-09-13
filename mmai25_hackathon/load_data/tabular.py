@@ -65,9 +65,8 @@ def read_tabular(
             Default: None.
         index_cols (Optional[Union[List[str], str]]): If provided, will select these columns as the index of the DataFrame.
             Default: None.
-        filter_rows (Optional[Dict[str, Union[Sequence, pd.Index]]]): If provided, will filter the rows
-            based on the specified column values. The keys are column names and the values are sequences
-            of acceptable values for filtering. Will be ignored if not found in the DataFrame. Default: None.
+        filter_rows (Optional[Dict[str, Union[Sequence, pd.Index]]]): Row filters as
+            {column: allowed_values}. Applied where columns exist. Default: None.
         sep (str): Value separator in the tabular text file. Default: ",".
         raise_errors (bool): If True, will raise an error if none of the specified `subset_cols`
             or `index_cols` are found in the DataFrame. Default: True.
