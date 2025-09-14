@@ -17,6 +17,8 @@ from torch_geometric.data import DataLoader
 
 __all__ = ["BaseDataset", "BaseDataLoader", "BaseSampler"]
 
+from uaclient.data_types import data_list
+
 
 class BaseDataset(Dataset):
     """
@@ -96,6 +98,20 @@ class BaseDataset(Dataset):
         raise NotImplementedError("Subclasses may implement prepare_data class method if needed.")
 
 
+class CXRDataset(BaseDataset):
+    """Example subclass for a chest X-ray dataset."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class ECGDataset(BaseDataset):
+    """Example subclass for an ECG dataset."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
 class BaseDataLoader(DataLoader):
     """
     DataLoader for graph and non-graph data.
@@ -117,6 +133,14 @@ class BaseDataLoader(DataLoader):
         in that batch, keeping iteration simple and robust.
         Note: This is not a hard requirement. Consider it a future-facing idea you can evolve.
     """
+
+
+class MultimodalDataLoader(BaseDataLoader):
+    """Example dataloader for handling multiple data modalities."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(data_list, *args, **kwargs)
+        self.data_list = data_list
 
 
 class BaseSampler(Sampler):

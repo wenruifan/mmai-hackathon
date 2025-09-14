@@ -95,7 +95,7 @@ def test_load_notes_filters_empty_text_and_merges_detail(tmp_path: Path) -> None
     assert set(df["note_id"]) == {1}, f"Expected only note_id=1 after filtering, got {set(df['note_id'])}"
     assert (
         df.loc[df["note_id"] == 1, "text"].iloc[0] == "hello"
-    ), f"Text should be stripped; got {df.loc[df['note_id']==1, 'text'].iloc[0]!r}"
+    ), f"Text should be stripped; got {df.loc[df['note_id'] == 1, 'text'].iloc[0]!r}"
 
 
 def test_detail_missing_required_id_columns_raises(tmp_path: Path) -> None:

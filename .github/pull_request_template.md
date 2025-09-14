@@ -4,6 +4,17 @@
 Provide a short summary of the changes in this PR.
 
 ---
+### Data Modalities Covered
+
+List the modalities included in this PR (tick all that apply):
+
+- [ ] Image
+- [ ] Text
+- [ ] Signals
+- [ ] Tabular
+- [ ] Other
+
+---
 
 ### Dataset & DataLoader Design
 - Describe the **design decisions** for your Dataset and DataLoader implementation.
@@ -22,25 +33,16 @@ Provide a short summary of the changes in this PR.
 Provide example code showing how to use your Dataset/DataLoader:
 
 ```python
-from load_data.dataset import MyDataset
-from torch.utils.data import DataLoader
+from load_data.dataset import CXRDataset, ECGDataset, MultimodalDataloader
 
-dataset = MyDataset(root="data/", ...)
-loader = DataLoader(dataset, batch_size=8, shuffle=True, collate_fn=dataset.collate_fn)
+cxr_dataset = CXRDataset(data_dir='path/to/cxr', ...)
+ecg_dataset = ECGDataset(data_dir='path/to/ecg', ...)
+dataset_list = [cxr_dataset, ecg_dataset]
+loader = MultimodalDataloader(dataset_list, batch_size=8, shuffle=True)
 
 for batch in loader:
     print(batch.keys())
 ```
-
-### Data Modalities Covered
-
-List the modalities included in this PR (tick all that apply):
-
-- [ ] Image
-- [ ] Text
-- [ ] Signals
-- [ ] Tabular
-- [ ] Other
 
 ### Extensibility
 
