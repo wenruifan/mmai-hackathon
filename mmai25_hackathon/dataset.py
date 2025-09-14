@@ -17,8 +17,6 @@ from torch_geometric.data import DataLoader
 
 __all__ = ["BaseDataset", "BaseDataLoader", "BaseSampler"]
 
-from uaclient.data_types import data_list
-
 
 class BaseDataset(Dataset):
     """
@@ -138,8 +136,8 @@ class BaseDataLoader(DataLoader):
 class MultimodalDataLoader(BaseDataLoader):
     """Example dataloader for handling multiple data modalities."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(data_list, *args, **kwargs)
+    def __init__(self, data_list, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.data_list = data_list
 
 
