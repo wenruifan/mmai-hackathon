@@ -141,15 +141,4 @@ class MultimodalDataLoader(BaseDataLoader):
         self.data_list = data_list
 
 
-class BaseSampler(Sampler):
-    """
-    Base sampler to extend for custom sampling strategies.
 
-    Args:
-        data_source (Sized): The dataset to sample from.
-
-    Initial Idea:
-        A `MultimodalSampler` can coordinate indices across modality datasets to ensure
-        balanced or paired sampling before passing to `BaseDataLoader`.
-        Note: This is optional and meant as a design hint, not a constraint.
-    """
